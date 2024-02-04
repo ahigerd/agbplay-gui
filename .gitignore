@@ -1,0 +1,6 @@
+.build
+agbplay-gui
+*.exe
+*.o
+moc_*
+Makefile

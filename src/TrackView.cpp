@@ -5,7 +5,6 @@
 #include <QGridLayout>
 #include <QLabel>
 #include <QCheckBox>
-#include <QtDebug>
 
 #define addLabel(name, text) \
   name = new QLabel(text, leftPanel); \
@@ -45,8 +44,9 @@ TrackView::TrackView(TrackHeader* header, int index, QWidget* parent)
 
   trackNumber->setText(QString::number(index).rightJustified(2, '0'));
 
-  setSizePolicy(QSizePolicy::Expanding, QSizePolicy::MinimumExpanding);
+  setSizePolicy(QSizePolicy::MinimumExpanding, QSizePolicy::MinimumExpanding);
   setMinimumWidth(sizeHint().width());
+  setMaximumWidth(leftPanel->sizeHint().width() + keys->maximumSize().width());
 
   QObject::connect(mute, SIGNAL(toggled(bool)), vu, SLOT(setMute(bool)));
 }

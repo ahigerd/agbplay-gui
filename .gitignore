@@ -4,3 +4,4 @@ agbplay-gui
 *.o
 moc_*
 Makefile
+core

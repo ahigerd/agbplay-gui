@@ -1,5 +1,5 @@
 TEMPLATE = app
-QT = core gui widgets multimedia
+QT = core gui widgets
 CONFIG += c++17
 OBJECTS_DIR = .build
 MOC_DIR = .build

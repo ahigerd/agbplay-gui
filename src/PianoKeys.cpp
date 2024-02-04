@@ -14,6 +14,7 @@ PianoKeys::PianoKeys(QWidget* parent)
 : QWidget(parent)
 {
   setMinimumSize(numWhiteKeys * 3 + 1, 8);
+  setMaximumWidth(numWhiteKeys * 14 + 1);
   setSizeIncrement(75, 2);
   setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Minimum);
 

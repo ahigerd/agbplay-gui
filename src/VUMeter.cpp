@@ -1,7 +1,6 @@
 #include "VUMeter.h"
 #include <QPainter>
 #include <QLinearGradient>
-#include <QtDebug>
 
 VUMeter::VUMeter(QWidget* parent)
 : QWidget(parent), leftLevel(0), rightLevel(0), muted(false), stereo(Qt::Horizontal)
@@ -56,8 +55,8 @@ void VUMeter::paintEvent(QPaintEvent*)
     p.fillRect(span + 3, 1, barWidth - 7, h, Qt::green);
   } else {
     int barHeight = h / 2 - 1;
-    p.fillRect(1, 1, w * leftLevel, barHeight, leftGradient);
-    p.fillRect(1, h - barHeight + 1, w * rightLevel, barHeight, leftGradient);
+    p.fillRect(1, 1, w * leftLevel, barHeight, rightGradient);
+    p.fillRect(1, h - barHeight + 1, w * rightLevel, barHeight, rightGradient);
   }
 }
 
@@ -65,7 +64,7 @@ void VUMeter::resizeEvent(QResizeEvent*)
 {
   int v = muted ? 128 : 255;
   double w = width();
-  double channelWidth = stereo == Qt::Horizontal ? w / 2 : w;
+  double channelWidth = stereo == Qt::Horizontal ? w / 2 : 0;
 
   QLinearGradient left(0, 0, channelWidth, 0);
   left.setColorAt(0, QColor(v, 0, 0));

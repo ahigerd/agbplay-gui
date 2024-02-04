@@ -6,7 +6,6 @@
 #include <QScrollBar>
 #include <QLabel>
 #include <QEvent>
-#include <QtDebug>
 #include <QStyleOptionHeader>
 
 TrackList::TrackList(QWidget* parent)
@@ -27,21 +26,22 @@ TrackList::TrackList(QWidget* parent)
   trackLayout->addStretch(1);
 
   header->setGeometry(0, 0, width(), header->sizeHint().height());
-  setViewportMargins(0, header->sizeHint().height()/* + margins.top() + margins.bottom()*/, 0, 0);
+  setViewportMargins(0, header->sizeHint().height(), 0, 0);
 
   setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOn);
   setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
   setSizeAdjustPolicy(QScrollArea::AdjustToContentsOnFirstShow);
+  setMaximumWidth(v->maximumWidth() + verticalScrollBar()->sizeHint().width());
 }
 
 void TrackList::showEvent(QShowEvent* e)
 {
   QScrollArea::showEvent(e);
   setMinimumWidth(sizeHint().width());
-  setMinimumHeight(viewportMargins().top() + viewportMargins().bottom() + base->sizeHint().height() + 4);
+  setMinimumHeight(base->sizeHint().height() + 4);
 
   for (int i = 1; i < 16; i++) {
-    TrackView* v = new TrackView(header, 0, base);
+    TrackView* v = new TrackView(header, i, base);
     trackLayout->insertWidget(i, v, 0);
   }
 }

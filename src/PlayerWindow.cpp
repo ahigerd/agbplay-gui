@@ -1,16 +1,20 @@
 #include "PlayerWindow.h"
 #include "TrackList.h"
 #include "VUMeter.h"
+#include "RomView.h"
+#include <QApplication>
 #include <QBoxLayout>
-#include <QGroupBox>
 #include <QTreeView>
 #include <QLabel>
 #include <QFont>
-#include <QFontInfo>
 #include <QFontDatabase>
 #include <QStandardItemModel>
 #include <QHeaderView>
 #include <QPlainTextEdit>
+#include <QMenuBar>
+#include <QMenu>
+#include <QMessageBox>
+#include <QFileDialog>
 
 PlayerWindow::PlayerWindow(QWidget* parent)
 : QMainWindow(parent)
@@ -19,46 +23,73 @@ PlayerWindow::PlayerWindow(QWidget* parent)
   setCentralWidget(base);
 
   QVBoxLayout* vbox = new QVBoxLayout(base);
-  QHBoxLayout* header = new QHBoxLayout;
+  vbox->addLayout(makeTop(), 0);
+
   QHBoxLayout* hbox = new QHBoxLayout;
-  vbox->addLayout(header, 0);
+  hbox->addLayout(makeLeft(), 1);
+  hbox->addLayout(makeRight(), 4);
   vbox->addLayout(hbox, 1);
 
-  header->addWidget(makeTitle(), 0);
+  setMenuBar(new QMenuBar(this));
+  makeMenu();
+}
+
+QLayout* PlayerWindow::makeTop()
+{
+  QHBoxLayout* layout = new QHBoxLayout;
+
+  layout->addWidget(makeTitle(), 0);
 
   VUMeter* vu = new VUMeter(this);
   vu->setStereoLayout(Qt::Vertical);
-  header->addWidget(vu, 1);
+  layout->addWidget(vu, 1);
 
-  QVBoxLayout* vboxLeft = new QVBoxLayout;
-  QVBoxLayout* vboxRight = new QVBoxLayout;
-  hbox->addLayout(vboxLeft, 1);
-  hbox->addLayout(vboxRight, 4);
+  return layout;
+}
+
+QLayout* PlayerWindow::makeLeft()
+{
+  QVBoxLayout* layout = new QVBoxLayout;
 
   songs = new QStandardItemModel(this);
-  QTreeView* songList = makeView(tr("Songs"), songs);
+  songList = makeView(tr("Songs"), songs);
   songs->appendRow(new QStandardItem("0000"));
-  vboxLeft->addWidget(songList);
+  layout->addWidget(songList);
 
   playlist = new QStandardItemModel(this);
-  QTreeView* playlistView = makeView(tr("Playlist"), playlist);
-  vboxLeft->addWidget(playlistView);
+  playlistView = makeView(tr("Playlist"), playlist);
+  layout->addWidget(playlistView);
 
-  QHBoxLayout* hboxRight = new QHBoxLayout;
-  vboxRight->addLayout(hboxRight, 1);
+  return layout;
+}
 
-  trackList = new TrackList(base);
-  hboxRight->addWidget(trackList, 1);
+QLayout* PlayerWindow::makeRight()
+{
+  QVBoxLayout* vbox = new QVBoxLayout;
+  QHBoxLayout* hbox = new QHBoxLayout;
+  hbox->addWidget(trackList = new TrackList(this), 1);
+  hbox->addWidget(romView = new RomView(this), 0);
+  vbox->addLayout(hbox, 1);
 
-  QLabel* romInfo = new QLabel(base);
-  romInfo->setText(QStringLiteral("<b>ROM Name:</b>\nTest\n\n<b>ROM Code</b>\nTEST\n\n<b>Songtable Offset:</b>\n0x00000000\n\n<b>Number of Songs:</b>\n0").replace("\n", "<br>"));
-  romInfo->setAlignment(Qt::AlignTop | Qt::AlignLeft);
-  hboxRight->addWidget(romInfo, 0);
-
-  QPlainTextEdit* log = new QPlainTextEdit(base);
+  log = new QPlainTextEdit(this);
   log->setReadOnly(true);
   log->setMaximumHeight(100);
-  vboxRight->addWidget(log, 0);
+  vbox->addWidget(log, 0);
+
+  return vbox;
+}
+
+void PlayerWindow::makeMenu()
+{
+  QMenuBar* mb = menuBar();
+  QMenu* fileMenu = mb->addMenu(tr("&File"));
+  fileMenu->addAction(tr("&Open ROM..."), this, SLOT(openRom()));
+  fileMenu->addSeparator();
+  fileMenu->addAction(tr("E&xit"), qApp, SLOT(quit()));
+
+  QMenu* helpMenu = mb->addMenu(tr("&Help"));
+  helpMenu->addAction(tr("&About..."), this, SLOT(about()));
+  helpMenu->addAction(tr("About &Qt..."), qApp, SLOT(aboutQt()));
 }
 
 QLabel* PlayerWindow::makeTitle()
@@ -83,10 +114,22 @@ QLabel* PlayerWindow::makeTitle()
 QTreeView* PlayerWindow::makeView(const QString& label, QStandardItemModel* model)
 {
   QTreeView* view = new QTreeView(this);
-  view->setRootIsDecorated(false);
   model->setHorizontalHeaderLabels({ label });
-  //model->setHeaderData(0, Qt::Horizontal, QSize(150, 20), Qt::SizeHintRole);
+  view->setRootIsDecorated(false);
   view->header()->resizeSection(0, 150);
   view->setModel(model);
   return view;
+}
+
+void PlayerWindow::openRom()
+{
+}
+
+void PlayerWindow::about()
+{
+  QMessageBox::about(this, "agbplay-gui",
+    tr(
+      "<b>agbplay</b> is a music player for GBA ROMs that use "
+      "the MusicPlayer2000 (mp2k/m4a/\"Sappy\") sound engine."
+    ));
 }

@@ -15,6 +15,7 @@
 #include <QMenu>
 #include <QMessageBox>
 #include <QFileDialog>
+#include <QSettings>
 
 PlayerWindow::PlayerWindow(QWidget* parent)
 : QMainWindow(parent)
@@ -123,11 +124,19 @@ QTreeView* PlayerWindow::makeView(const QString& label, QStandardItemModel* mode
 
 void PlayerWindow::openRom()
 {
+  QString path = QFileDialog::getOpenFileName(
+    this,
+    tr("Open GBA ROM File"),
+    QString(),
+    QStringLiteral("%1 (*.gba);;%2 (*)").arg(tr("GBA ROM files")).arg(tr("All files"))
+  );
 }
 
 void PlayerWindow::about()
 {
-  QMessageBox::about(this, "agbplay-gui",
+  QMessageBox::about(
+    this,
+    tr("agbplay-gui (%1)").arg(qApp->applicationVersion()),
     tr(
       "<b>agbplay</b> is a music player for GBA ROMs that use "
       "the MusicPlayer2000 (mp2k/m4a/\"Sappy\") sound engine."

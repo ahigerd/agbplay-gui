@@ -38,3 +38,14 @@ for(F, AGBPLAY) {
 }
 
 SOURCES += src/main.cpp
+
+# If git commands can be run without errors, grab the commit hash as a version number
+system(git log -1 --pretty=format:) {
+  VERSION = 1.0.0-$$system(git log -1 --pretty=format:%h)
+}
+# Otherwise just use a dummy version number
+else {
+  VERSION = 1.0.0
+}
+
+DEFINES += AGBPLAY_VERSION=$${VERSION}

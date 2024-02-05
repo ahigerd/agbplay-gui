@@ -6,8 +6,6 @@ VUMeter::VUMeter(QWidget* parent)
 : QWidget(parent), leftLevel(0), rightLevel(0), muted(false), stereo(Qt::Horizontal)
 {
   // initializers only
-  leftLevel = (qrand() % 100) / 100.0;
-  rightLevel = (qrand() % 100) / 100.0;
 }
 
 void VUMeter::setStereoLayout(Qt::Orientation a)

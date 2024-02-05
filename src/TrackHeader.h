@@ -39,7 +39,7 @@ private:
   struct Label {
     Label(const QRect& rect, const QString& text, int pos = 0);
     const QRect* rect;
-    const QString text;
+    QString text;
     QStyleOptionHeader::SectionPosition section;
   };
   QList<Label> labels;

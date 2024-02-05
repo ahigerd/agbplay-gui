@@ -4,6 +4,7 @@
 #include "RomView.h"
 #include "Rom.h"
 #include "ConfigManager.h"
+#include "SongModel.h"
 #include <QApplication>
 #include <QBoxLayout>
 #include <QTreeView>
@@ -20,8 +21,11 @@
 #include <QSettings>
 
 PlayerWindow::PlayerWindow(QWidget* parent)
-: QMainWindow(parent), songTable(nullptr)
+: QMainWindow(parent)
 {
+  setWindowTitle("agbplay");
+  songs = new SongModel(this);
+
   QWidget* base = new QWidget(this);
   setCentralWidget(base);
 
@@ -37,6 +41,7 @@ PlayerWindow::PlayerWindow(QWidget* parent)
   makeMenu();
 
   QObject::connect(this, SIGNAL(romUpdated(Rom*)), romView, SLOT(updateRom(Rom*)));
+  QObject::connect(songs, SIGNAL(songTableUpdated(SongTable*)), this, SIGNAL(songTableUpdated(SongTable*)));
   QObject::connect(this, SIGNAL(songTableUpdated(SongTable*)), romView, SLOT(updateSongTable(SongTable*)));
 }
 
@@ -57,13 +62,12 @@ QLayout* PlayerWindow::makeLeft()
 {
   QVBoxLayout* layout = new QVBoxLayout;
 
-  songs = new QStandardItemModel(this);
-  songList = makeView(tr("Songs"), songs);
-  songs->appendRow(new QStandardItem("0000"));
+  songList = makeView(songs);
   layout->addWidget(songList);
 
   playlist = new QStandardItemModel(this);
-  playlistView = makeView(tr("Playlist"), playlist);
+  playlist->setHorizontalHeaderLabels({ tr("Playlist") });
+  playlistView = makeView(playlist);
   layout->addWidget(playlistView);
 
   return layout;
@@ -117,13 +121,13 @@ QLabel* PlayerWindow::makeTitle()
   return title;
 }
 
-QTreeView* PlayerWindow::makeView(const QString& label, QStandardItemModel* model)
+QTreeView* PlayerWindow::makeView(QAbstractItemModel* model)
 {
   QTreeView* view = new QTreeView(this);
-  model->setHorizontalHeaderLabels({ label });
   view->setRootIsDecorated(false);
   view->header()->resizeSection(0, 150);
   view->setModel(model);
+  view->setSelectionMode(QAbstractItemView::ExtendedSelection);
   return view;
 }
 
@@ -143,17 +147,22 @@ void PlayerWindow::openRom()
 
 void PlayerWindow::openRom(const QString& path)
 {
+  Rom* rom;
   try {
     Rom::CreateInstance(qPrintable(path));
-    Rom* rom = &Rom::Instance();
+    rom = &Rom::Instance();
     ConfigManager::Instance().SetGameCode(rom->GetROMCode());
-    emit romUpdated(rom);
-
-    songTable.reset(new SongTable());
-    emit songTableUpdated(songTable.get());
+    songs->openRom(rom);
   } catch (std::exception& e) {
     QMessageBox::warning(nullptr, "agbplay-gui", e.what());
+    setWindowFilePath(QString());
+    setWindowTitle("agbplay");
+    return;
   }
+
+  setWindowFilePath(path);
+  setWindowTitle(QStringLiteral("agbplay - %1").arg(QFileInfo(path).fileName()));
+  emit romUpdated(rom);
 }
 
 void PlayerWindow::about()

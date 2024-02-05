@@ -5,7 +5,9 @@ OBJECTS_DIR = .build
 MOC_DIR = .build
 RCC_DIR = .build
 INCLUDEPATH += $${_PRO_FILE_PWD_}/src $${_PRO_FILE_PWD_}/agbplay/src
-QMAKE_CXXFLAGS += -D_XOPEN_SOURCE=700 -Wall -Wextra -Wconversion -Wunreachable-code
+QMAKE_CXXFLAGS += -D_XOPEN_SOURCE=700 -Wall -Wextra -Wconversion -Wunreachable-code -Wno-float-conversion
+CONFIG += debug
+CONFIG -= release
 LIBS += -lm -pthread
 unix {
   CONFIG += link_pkgconfig
@@ -23,8 +25,8 @@ SOURCES += src/PianoKeys.cpp src/VUMeter.cpp src/TrackHeader.cpp
 HEADERS += src/TrackView.h   src/TrackList.h   src/PlayerWindow.h
 SOURCES += src/TrackView.cpp src/TrackList.cpp src/PlayerWindow.cpp
 
-HEADERS += src/RomView.h
-SOURCES += src/RomView.cpp
+HEADERS += src/RomView.h     src/SongModel.h
+SOURCES += src/RomView.cpp   src/SongModel.cpp
 
 # files with the implementations replaced with Qt equivalents
 HEADERS += agbplay/src/ConfigManager.h agbplay/src/OS.h

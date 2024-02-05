@@ -14,6 +14,9 @@ public:
 
   QSize sizeHint() const;
 
+public slots:
+  //void selectSong(int index);
+
 protected:
   void showEvent(QShowEvent*);
   void resizeEvent(QResizeEvent*);

@@ -1,13 +1,14 @@
 #pragma once
 
 #include <QMainWindow>
-#include <memory>
-#include "SoundData.h"
 class TrackList;
+class SongModel;
+class QAbstractItemModel;
 class QStandardItemModel;
 class QTreeView;
 class QLabel;
 class QPlainTextEdit;
+class SongTable;
 class RomView;
 class Rom;
 
@@ -33,7 +34,7 @@ private:
   void makeMenu();
 
   QLabel* makeTitle();
-  QTreeView* makeView(const QString& label, QStandardItemModel* model);
+  QTreeView* makeView(QAbstractItemModel* model);
 
   TrackList* trackList;
   QTreeView* songList;
@@ -41,7 +42,6 @@ private:
   RomView* romView;
   QPlainTextEdit* log;
 
-  std::unique_ptr<SongTable> songTable;
-  QStandardItemModel* songs;
+  SongModel* songs;
   QStandardItemModel* playlist;
 };

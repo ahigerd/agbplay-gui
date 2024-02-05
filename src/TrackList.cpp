@@ -47,11 +47,6 @@ void TrackList::showEvent(QShowEvent* e)
   QScrollArea::showEvent(e);
   setMinimumWidth(sizeHint().width());
   setMinimumHeight(base->sizeHint().height() + 4);
-
-  for (int i = 1; i < 16; i++) {
-    TrackView* v = new TrackView(header, i, base);
-    trackLayout->insertWidget(i, v, 0);
-  }
 }
 
 void TrackList::resizeEvent(QResizeEvent* e)

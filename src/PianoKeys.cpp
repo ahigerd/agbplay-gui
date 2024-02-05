@@ -17,10 +17,6 @@ PianoKeys::PianoKeys(QWidget* parent)
   setMaximumWidth(numWhiteKeys * 14 + 1);
   setSizeIncrement(75, 2);
   setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Minimum);
-
-  for (int i = 0; i < 10; i++) {
-    activeKeys[qrand() % 128] = true;
-  }
 }
 
 int PianoKeys::preferredWidth(int maxWidth)

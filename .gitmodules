@@ -1,0 +1,3 @@
+[submodule "agbplay"]
+	path = agbplay
+	url = https://github.com/ipatix/agbplay

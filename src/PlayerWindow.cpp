@@ -2,6 +2,8 @@
 #include "TrackList.h"
 #include "VUMeter.h"
 #include "RomView.h"
+#include "Rom.h"
+#include "ConfigManager.h"
 #include <QApplication>
 #include <QBoxLayout>
 #include <QTreeView>
@@ -18,7 +20,7 @@
 #include <QSettings>
 
 PlayerWindow::PlayerWindow(QWidget* parent)
-: QMainWindow(parent)
+: QMainWindow(parent), songTable(nullptr)
 {
   QWidget* base = new QWidget(this);
   setCentralWidget(base);
@@ -33,6 +35,9 @@ PlayerWindow::PlayerWindow(QWidget* parent)
 
   setMenuBar(new QMenuBar(this));
   makeMenu();
+
+  QObject::connect(this, SIGNAL(romUpdated(Rom*)), romView, SLOT(updateRom(Rom*)));
+  QObject::connect(this, SIGNAL(songTableUpdated(SongTable*)), romView, SLOT(updateSongTable(SongTable*)));
 }
 
 QLayout* PlayerWindow::makeTop()
@@ -130,6 +135,25 @@ void PlayerWindow::openRom()
     QString(),
     QStringLiteral("%1 (*.gba);;%2 (*)").arg(tr("GBA ROM files")).arg(tr("All files"))
   );
+  if (path.isEmpty()) {
+    return;
+  }
+  openRom(path);
+}
+
+void PlayerWindow::openRom(const QString& path)
+{
+  try {
+    Rom::CreateInstance(qPrintable(path));
+    Rom* rom = &Rom::Instance();
+    ConfigManager::Instance().SetGameCode(rom->GetROMCode());
+    emit romUpdated(rom);
+
+    songTable.reset(new SongTable());
+    emit songTableUpdated(songTable.get());
+  } catch (std::exception& e) {
+    QMessageBox::warning(nullptr, "agbplay-gui", e.what());
+  }
 }
 
 void PlayerWindow::about()

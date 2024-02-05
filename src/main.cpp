@@ -42,6 +42,11 @@ int main(int argc, char** argv)
   PlayerWindow wgui;
   wgui.show();
 
+  QStringList args = app.arguments();
+  if (args.length() > 1) {
+    wgui.openRom(args[1]);
+  }
+
   int result = app.exec();
 
   if (Pa_Terminate() != paNoError)

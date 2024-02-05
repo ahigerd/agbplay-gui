@@ -34,6 +34,14 @@ TrackList::TrackList(QWidget* parent)
   setMaximumWidth(v->maximumWidth() + verticalScrollBar()->sizeHint().width());
 }
 
+QSize TrackList::sizeHint() const
+{
+  return QSize(
+    base->sizeHint().width() + verticalScrollBar()->sizeHint().width() + 20,
+    base->sizeHint().height() + 4
+  );
+}
+
 void TrackList::showEvent(QShowEvent* e)
 {
   QScrollArea::showEvent(e);

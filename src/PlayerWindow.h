@@ -1,12 +1,15 @@
 #pragma once
 
 #include <QMainWindow>
+#include <memory>
+#include "SoundData.h"
 class TrackList;
 class QStandardItemModel;
 class QTreeView;
 class QLabel;
 class QPlainTextEdit;
 class RomView;
+class Rom;
 
 class PlayerWindow : public QMainWindow
 {
@@ -16,7 +19,12 @@ public:
 
 public slots:
   void openRom();
+  void openRom(const QString& path);
   void about();
+
+signals:
+  void romUpdated(Rom*);
+  void songTableUpdated(SongTable*);
 
 private:
   QLayout* makeTop();
@@ -33,6 +41,7 @@ private:
   RomView* romView;
   QPlainTextEdit* log;
 
+  std::unique_ptr<SongTable> songTable;
   QStandardItemModel* songs;
   QStandardItemModel* playlist;
 };

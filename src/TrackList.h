@@ -12,6 +12,8 @@ Q_OBJECT
 public:
   TrackList(QWidget* parent = nullptr);
 
+  QSize sizeHint() const;
+
 protected:
   void showEvent(QShowEvent*);
   void resizeEvent(QResizeEvent*);

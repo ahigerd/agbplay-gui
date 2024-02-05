@@ -1,12 +1,12 @@
 #include "TrackList.h"
 #include "TrackHeader.h"
 #include "TrackView.h"
-#include <QStylePainter>
+#include "PlayerContext.h"
 #include <QVBoxLayout>
 #include <QScrollBar>
 #include <QLabel>
 #include <QEvent>
-#include <QStyleOptionHeader>
+#include <QtDebug>
 
 TrackList::TrackList(QWidget* parent)
 : QScrollArea(parent)
@@ -22,6 +22,7 @@ TrackList::TrackList(QWidget* parent)
 
   // populate a dummy entry for geometry
   TrackView* v = new TrackView(header, 0, base);
+  tracks << v;
   trackLayout->addWidget(v, 0);
   trackLayout->addStretch(1);
 
@@ -53,4 +54,17 @@ void TrackList::resizeEvent(QResizeEvent* e)
 {
   QScrollArea::resizeEvent(e);
   header->resize(width(), viewportMargins().top());
+}
+
+void TrackList::selectSong(PlayerContext* ctx)
+{
+  qDeleteAll(tracks);
+  tracks.clear();
+
+  int numTracks = int(ctx->seq.tracks.size());
+  for (int i = 0; i < numTracks; i++) {
+    TrackView* t = new TrackView(header, i, this);
+    tracks << t;
+    trackLayout->insertWidget(i, t);
+  }
 }

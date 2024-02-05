@@ -1,6 +1,8 @@
 #pragma once
 
 #include <QMainWindow>
+#include <memory>
+#include "PlayerContext.h"
 class TrackList;
 class SongModel;
 class QAbstractItemModel;
@@ -27,6 +29,9 @@ signals:
   void romUpdated(Rom*);
   void songTableUpdated(SongTable*);
 
+private slots:
+  void selectSong(const QModelIndex& index);
+
 private:
   QLayout* makeTop();
   QLayout* makeLeft();
@@ -44,4 +49,5 @@ private:
 
   SongModel* songs;
   QStandardItemModel* playlist;
+  std::unique_ptr<PlayerContext> ctx;
 };

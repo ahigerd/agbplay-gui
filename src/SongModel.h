@@ -17,6 +17,8 @@ public:
 
   void openRom(Rom*);
 
+  std::uint32_t songAddress(const QModelIndex& index) const;
+
 signals:
   void songTableUpdated(SongTable*);
 

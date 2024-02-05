@@ -1,10 +1,12 @@
 #pragma once
 
 #include <QScrollArea>
+#include <QModelIndex>
 #include <QVector>
 class QVBoxLayout;
 class TrackView;
 class TrackHeader;
+class PlayerContext;
 
 class TrackList : public QScrollArea
 {
@@ -14,8 +16,7 @@ public:
 
   QSize sizeHint() const;
 
-public slots:
-  //void selectSong(int index);
+  void selectSong(PlayerContext* ctx);
 
 protected:
   void showEvent(QShowEvent*);

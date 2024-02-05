@@ -32,8 +32,9 @@ SOURCES += src/RomView.cpp   src/SongModel.cpp
 HEADERS += agbplay/src/ConfigManager.h agbplay/src/OS.h
 SOURCES += src/ConfigManager.cpp       src/OS.cpp
 
-AGBPLAY += CGBChannel CGBPatterns Debug GameConfig Resampler Rom
-AGBPLAY += SoundData SongEntry Types Xcept
+AGBPLAY += CGBChannel CGBPatterns Debug GameConfig PlayerContext
+AGBPLAY += SequenceReader SoundMixer ReverbEffect LoudnessCalculator
+AGBPLAY += SoundChannel Resampler Rom SoundData SongEntry Types Xcept
 for(F, AGBPLAY) {
   HEADERS += agbplay/src/$${F}.h
   SOURCES += agbplay/src/$${F}.cpp

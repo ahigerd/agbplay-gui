@@ -40,3 +40,11 @@ QVariant SongModel::headerData(int section, Qt::Orientation orientation, int rol
   }
   return QAbstractListModel::headerData(section, orientation, role);
 }
+
+std::uint32_t SongModel::songAddress(const QModelIndex& index) const
+{
+  if (!songTable || !index.isValid() || index.parent().isValid()) {
+    return 0;
+  }
+  return std::uint32_t(songTable->GetPosOfSong(std::uint16_t(index.row())));
+}

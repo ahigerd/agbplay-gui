@@ -21,7 +21,7 @@
 #include <QSettings>
 
 PlayerWindow::PlayerWindow(QWidget* parent)
-: QMainWindow(parent)
+: QMainWindow(parent), ctx(nullptr)
 {
   setWindowTitle("agbplay");
   songs = new SongModel(this);
@@ -43,6 +43,7 @@ PlayerWindow::PlayerWindow(QWidget* parent)
   QObject::connect(this, SIGNAL(romUpdated(Rom*)), romView, SLOT(updateRom(Rom*)));
   QObject::connect(songs, SIGNAL(songTableUpdated(SongTable*)), this, SIGNAL(songTableUpdated(SongTable*)));
   QObject::connect(this, SIGNAL(songTableUpdated(SongTable*)), romView, SLOT(updateSongTable(SongTable*)));
+  QObject::connect(songList, SIGNAL(activated(QModelIndex)), this, SLOT(selectSong(QModelIndex)));
 }
 
 QLayout* PlayerWindow::makeTop()
@@ -152,8 +153,16 @@ void PlayerWindow::openRom(const QString& path)
     Rom::CreateInstance(qPrintable(path));
     rom = &Rom::Instance();
     ConfigManager::Instance().SetGameCode(rom->GetROMCode());
+    const auto& cfg = ConfigManager::Instance().GetCfg();
+
+    ctx = std::make_unique<PlayerContext>(
+      ConfigManager::Instance().GetMaxLoopsPlaylist(),
+      cfg.GetTrackLimit(),
+      EnginePars(cfg.GetPCMVol(), cfg.GetEngineRev(), cfg.GetEngineFreq())
+    );
     songs->openRom(rom);
   } catch (std::exception& e) {
+    ctx.reset();
     QMessageBox::warning(nullptr, "agbplay-gui", e.what());
     setWindowFilePath(QString());
     setWindowTitle("agbplay");
@@ -163,6 +172,7 @@ void PlayerWindow::openRom(const QString& path)
   setWindowFilePath(path);
   setWindowTitle(QStringLiteral("agbplay - %1").arg(QFileInfo(path).fileName()));
   emit romUpdated(rom);
+  selectSong(songs->index(0, 0));
 }
 
 void PlayerWindow::about()
@@ -174,4 +184,15 @@ void PlayerWindow::about()
       "<b>agbplay</b> is a music player for GBA ROMs that use "
       "the MusicPlayer2000 (mp2k/m4a/\"Sappy\") sound engine."
     ));
+}
+
+void PlayerWindow::selectSong(const QModelIndex& index)
+{
+  try {
+    int pos = songs->songAddress(index);
+    ctx->InitSong(pos);
+    trackList->selectSong(ctx.get());
+  } catch (std::exception& e) {
+    QMessageBox::warning(nullptr, "agbplay-gui", e.what());
+  }
 }

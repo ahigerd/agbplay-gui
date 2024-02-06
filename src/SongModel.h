@@ -20,9 +20,6 @@ public:
 public slots:
   void setSongTable(SongTable* table);
 
-signals:
-  void songTableUpdated(SongTable*);
-
 private:
   SongTable* songTable;
 };

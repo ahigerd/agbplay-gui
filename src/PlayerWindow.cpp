@@ -20,12 +20,12 @@
 #include <QMessageBox>
 #include <QFileDialog>
 #include <QSettings>
+#include <QtDebug>
 
-PlayerWindow::PlayerWindow(QWidget* parent)
-: QMainWindow(parent)
+PlayerWindow::PlayerWindow(Player* player, QWidget* parent)
+: QMainWindow(parent), player(player)
 {
   setWindowTitle("agbplay");
-  player = new Player(this);
   songs = player->songModel();
 
   QWidget* base = new QWidget(this);
@@ -46,7 +46,8 @@ PlayerWindow::PlayerWindow(QWidget* parent)
   QObject::connect(player, SIGNAL(songTableUpdated(SongTable*)), romView, SLOT(updateSongTable(SongTable*)));
   QObject::connect(songList, SIGNAL(activated(QModelIndex)), this, SLOT(selectSong(QModelIndex)));
   QObject::connect(player, SIGNAL(songChanged(PlayerContext*,quint32,QString)), trackList, SLOT(selectSong(PlayerContext*,quint32,QString)));
-  QObject::connect(player, SIGNAL(updated(PlayerContext*)), trackList, SLOT(update(PlayerContext*)));
+  QObject::connect(player, SIGNAL(updated(PlayerContext*,VUState*)), trackList, SLOT(update(PlayerContext*,VUState*)));
+  QObject::connect(player, SIGNAL(updated(PlayerContext*,VUState*)), this, SLOT(updateVU(PlayerContext*,VUState*)));
   QObject::connect(trackList, SIGNAL(muteToggled(int,bool)), player, SLOT(setMute(int,bool)));
 }
 
@@ -56,9 +57,9 @@ QLayout* PlayerWindow::makeTop()
 
   layout->addWidget(makeTitle(), 0);
 
-  VUMeter* vu = new VUMeter(this);
-  vu->setStereoLayout(Qt::Vertical);
-  layout->addWidget(vu, 1);
+  masterVU = new VUMeter(this);
+  masterVU->setStereoLayout(Qt::Vertical);
+  layout->addWidget(masterVU, 1);
 
   return layout;
 }
@@ -185,7 +186,19 @@ void PlayerWindow::selectSong(const QModelIndex& index)
 {
   try {
     player->selectSong(index.row());
+    player->play();
   } catch (std::exception& e) {
     QMessageBox::warning(nullptr, "agbplay-gui", e.what());
   }
+}
+
+void PlayerWindow::closeEvent(QCloseEvent*)
+{
+  player->stop();
+}
+
+void PlayerWindow::updateVU(PlayerContext*, VUState* vu)
+{
+  masterVU->setLeft(vu->master.left);
+  masterVU->setRight(vu->master.right);
 }

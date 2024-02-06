@@ -2,6 +2,22 @@
 
 #include <QWidget>
 #include <QBrush>
+#include "LoudnessCalculator.h"
+
+struct VUState
+{
+  VUState();
+
+  void setTrackCount(int tracks);
+  void reset();
+  void update();
+
+  sample master;
+  std::vector<sample> track;
+
+  LoudnessCalculator masterLoudness;
+  std::vector<LoudnessCalculator> loudness;
+};
 
 class VUMeter : public QWidget
 {

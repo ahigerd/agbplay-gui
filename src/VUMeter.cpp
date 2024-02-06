@@ -2,6 +2,39 @@
 #include <QPainter>
 #include <QLinearGradient>
 
+VUState::VUState()
+: masterLoudness(10.0f)
+{
+  // initializers only
+}
+
+void VUState::setTrackCount(int numTracks)
+{
+  loudness.clear();
+  for (int i = 0; i < numTracks; i++) {
+    loudness.emplace_back(5.0f);
+  }
+  track = std::vector<sample>(numTracks);
+}
+
+void VUState::reset()
+{
+  masterLoudness.Reset();
+  for (LoudnessCalculator& c : loudness) {
+    c.Reset();
+  }
+}
+
+void VUState::update()
+{
+  masterLoudness.GetLoudness(master.left, master.right);
+  std::size_t numTracks = loudness.size();
+  for (std::size_t i = 0; i < numTracks; i++) {
+    sample& level = track[i];
+    loudness[i].GetLoudness(level.left, level.right);
+  }
+}
+
 VUMeter::VUMeter(QWidget* parent)
 : QWidget(parent), leftLevel(0), rightLevel(0), muted(false), stereo(Qt::Horizontal)
 {

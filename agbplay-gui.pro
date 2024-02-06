@@ -8,7 +8,6 @@ INCLUDEPATH += $${_PRO_FILE_PWD_}/src $${_PRO_FILE_PWD_}/agbplay/src
 QMAKE_CXXFLAGS += -D_XOPEN_SOURCE=700 -Wall -Wextra -Wconversion -Wunreachable-code -Wno-float-conversion
 CONFIG += debug
 CONFIG -= release
-LIBS += -lm -pthread
 unix {
   CONFIG += link_pkgconfig
   PKGCONFIG += sndfile portaudio-2.0
@@ -29,6 +28,7 @@ for(F, GUI_CLASS) {
 AGBPLAY += CGBChannel CGBPatterns Debug GameConfig PlayerContext
 AGBPLAY += SequenceReader SoundMixer ReverbEffect LoudnessCalculator
 AGBPLAY += SoundChannel Resampler Rom SoundData SongEntry Types Xcept
+AGBPLAY += Ringbuffer
 for(F, AGBPLAY) {
   HEADERS += agbplay/src/$${F}.h
   SOURCES += agbplay/src/$${F}.cpp

@@ -2,6 +2,7 @@
 #include "TrackHeader.h"
 #include "TrackView.h"
 #include "PlayerContext.h"
+#include "VUMeter.h"
 #include "UiUtils.h"
 #include <QVBoxLayout>
 #include <QScrollBar>
@@ -73,16 +74,23 @@ void TrackList::selectSong(PlayerContext* ctx, quint32 addr, const QString& titl
       QObject::connect(t, SIGNAL(soloToggled(int,bool)), this, SLOT(soloToggled(int,bool)));
     }
 
-    update(ctx);
+    update(ctx, nullptr);
   } else {
     header->setTrackName(QString());
   }
 }
 
-void TrackList::update(PlayerContext* ctx)
+void TrackList::update(PlayerContext* ctx, VUState* vu)
 {
-  for (TrackView* track : tracks) {
-    track->update(ctx);
+  int numTracks = tracks.size();
+  if (vu) {
+    for (int i = 0; i < numTracks; i++) {
+      tracks[i]->update(ctx, vu->track[i].left, vu->track[i].right);
+    }
+  } else {
+    for (int i = 0; i < numTracks; i++) {
+      tracks[i]->update(ctx, 0, 0);
+    }
   }
 }
 

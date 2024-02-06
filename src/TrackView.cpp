@@ -71,7 +71,7 @@ QSize TrackView::sizeHint() const
   return QSize(453 + leftPanel->sizeHint().width(), leftPanel->sizeHint().height());
 }
 
-void TrackView::update(PlayerContext* ctx)
+void TrackView::update(PlayerContext* ctx, double left, double right)
 {
   const auto& track = ctx->seq.tracks[trackIdx];
   location->setText(formatAddress(track.pos));
@@ -88,10 +88,8 @@ void TrackView::update(PlayerContext* ctx)
     keys->setNoteOn(i, track.activeNotes[i]);
   }
 
-  float leftLevel, rightLevel;
-  loudness.GetLoudness(leftLevel, rightLevel);
-  vu->setLeft(leftLevel * 3);
-  vu->setRight(rightLevel * 3);
+  vu->setLeft(left * 3);
+  vu->setRight(right * 3);
   vu->setMute(track.muted);
   mute->setChecked(track.muted);
   if (track.muted) {

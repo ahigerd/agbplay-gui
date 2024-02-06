@@ -18,7 +18,7 @@ public:
   int headerWidth() const;
   QSize sizeHint() const;
 
-  void update(PlayerContext* ctx);
+  void update(PlayerContext* ctx, double left, double right);
   void clearSolo();
 
 signals:

@@ -7,6 +7,7 @@ class QVBoxLayout;
 class TrackView;
 class TrackHeader;
 class PlayerContext;
+class VUState;
 
 class TrackList : public QScrollArea
 {
@@ -21,7 +22,7 @@ signals:
 
 public slots:
   void selectSong(PlayerContext* ctx, quint32 addr, const QString& title);
-  void update(PlayerContext* ctx);
+  void update(PlayerContext* ctx, VUState* vu);
 
 private slots:
   void onMuteToggled(int track, bool on);

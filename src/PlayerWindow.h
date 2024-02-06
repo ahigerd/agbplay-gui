@@ -10,6 +10,8 @@ class QStandardItemModel;
 class QTreeView;
 class QLabel;
 class QPlainTextEdit;
+class VUMeter;
+class VUState;
 class SongTable;
 class Player;
 class RomView;
@@ -19,7 +21,7 @@ class PlayerWindow : public QMainWindow
 {
 Q_OBJECT
 public:
-  PlayerWindow(QWidget* parent = nullptr);
+  PlayerWindow(Player* player, QWidget* parent = nullptr);
 
 public slots:
   void openRom();
@@ -29,8 +31,12 @@ public slots:
 signals:
   void romUpdated(Rom*);
 
+protected:
+  void closeEvent(QCloseEvent*);
+
 private slots:
   void selectSong(const QModelIndex& index);
+  void updateVU(PlayerContext*, VUState* vu);
 
 private:
   QLayout* makeTop();
@@ -41,6 +47,7 @@ private:
   QLabel* makeTitle();
   QTreeView* makeView(QAbstractItemModel* model);
 
+  VUMeter* masterVU;
   TrackList* trackList;
   QTreeView* songList;
   QTreeView* playlistView;

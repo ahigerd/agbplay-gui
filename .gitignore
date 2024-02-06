@@ -9,3 +9,4 @@ Makefile.Debug
 Makefile.Release
 *plugin_import.cpp
 *resource.rc
+cross-qmake.sh

@@ -17,6 +17,12 @@
 #include "Debug.h"
 #include "OS.h"
 
+#ifdef Q_OS_WIN
+#define CONFIG_PATH QStandardPaths::AppDataLocation
+#else
+#define CONFIG_PATH QStandardPaths::ConfigLocation
+#endif
+
 ConfigManager& ConfigManager::Instance()
 {
     static ConfigManager cm;
@@ -60,9 +66,20 @@ void ConfigManager::Load()
    * try reading it from /etc/agbplay/agbplay.json.
    * If this isn't found either, use an empty config file. */
   QJsonObject root;
-  QDir localDir(QStandardPaths::writableLocation(QStandardPaths::AppDataLocation));
+  QDir localDir(QStandardPaths::writableLocation(CONFIG_PATH));
   QString localPath = localDir.absoluteFilePath("agbplay.json");
-  QString configPath = QStandardPaths::locate(QStandardPaths::AppDataLocation, "agbplay.json");
+  QString configPath = QStandardPaths::locate(CONFIG_PATH, "agbplay.json");
+#ifdef Q_OS_WIN
+  // On Windows, AppDataLocation refers to AppData/Roaming/agbplay-gui
+  // But agbplay CLI looks in AppData/Roaming
+  // If someone happens to already have a file there, honor it
+  if (configPath.isEmpty()) {
+    localDir.cdUp();
+    if (localDir.exists("agbplay.json")) {
+      configPath = localPath = localDir.absoluteFilePath("agbplay.json");;
+    }
+  }
+#endif
   if (configPath.isEmpty()) {
     configPath = ":/agbplay.json";
     Debug::print("No configuration file found. Loading from defaults.");

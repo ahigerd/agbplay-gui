@@ -5,3 +5,7 @@ agbplay-gui
 moc_*
 Makefile
 core
+Makefile.Debug
+Makefile.Release
+*plugin_import.cpp
+*resource.rc

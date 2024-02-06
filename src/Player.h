@@ -48,7 +48,7 @@ private slots:
   void playbackDone();
 
 private:
-  static int audioCallback(const void*, void*, size_t, const PaStreamCallbackTimeInfo*, PaStreamCallbackFlags, void*);
+  static int audioCallback(const void*, void*, unsigned long, const PaStreamCallbackTimeInfo*, PaStreamCallbackFlags, void*);
   int audioCallback(sample* output, size_t frames);
 
   PaStreamParameters outputStreamParameters;

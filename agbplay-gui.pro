@@ -4,16 +4,20 @@ CONFIG += c++17
 OBJECTS_DIR = .build
 MOC_DIR = .build
 RCC_DIR = .build
-INCLUDEPATH += $${_PRO_FILE_PWD_}/src $${_PRO_FILE_PWD_}/agbplay/src
+INCLUDEPATH += $${_PRO_FILE_PWD_}/src $${_PRO_FILE_PWD_}/agbplay/src $${_PRO_FILE_PWD_}
 QMAKE_CXXFLAGS += -D_XOPEN_SOURCE=700 -Wall -Wextra -Wconversion -Wunreachable-code -Wno-float-conversion
-CONFIG += debug
-CONFIG -= release
+CONFIG += release
+CONFIG -= debug debug_and_release
 CONFIG += link_pkgconfig
-packagesExist(sndfile portaudio-2.0) {
-  PKGCONFIG += sndfile portaudio-2.0
+packagesExist(portaudio-2.0) {
+  PKGCONFIG += portaudio-2.0
 }
 else {
-  LIBS += -lsndfile -lportaudio
+  LIBS += -lportaudio
+}
+win32 {
+  CONFIG += static
+  QMAKE_LFLAGS += -static-libgcc -static-libstdc++ -static
 }
 
 RESOURCES += agbplay.qrc

@@ -1,6 +1,7 @@
 #pragma once
 
 #include <QString>
+#include <cstdint>
 
 QString signedNumber(int number);
 QString fixedNumber(int number, int digits);

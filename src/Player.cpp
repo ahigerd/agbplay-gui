@@ -345,7 +345,7 @@ void Player::setMute(int trackIdx, bool on)
   }
 }
 
-int Player::audioCallback(const void*, void* output, size_t frames, const PaStreamCallbackTimeInfo*, PaStreamCallbackFlags, void* self)
+int Player::audioCallback(const void*, void* output, unsigned long frames, const PaStreamCallbackTimeInfo*, PaStreamCallbackFlags, void* self)
 {
   return reinterpret_cast<Player*>(self)->audioCallback(reinterpret_cast<sample*>(output), frames);
 }

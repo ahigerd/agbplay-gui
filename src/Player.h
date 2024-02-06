@@ -6,6 +6,9 @@
 #include <memory>
 #include <atomic>
 #include <portaudio.h>
+#if __has_include(<pa_win_wasapi.h>)
+#include <pa_win_wasapi.h>
+#endif
 #include "PlayerContext.h"
 #include "LoudnessCalculator.h"
 #include "SoundData.h"

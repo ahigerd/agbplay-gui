@@ -8,8 +8,8 @@ INCLUDEPATH += $${_PRO_FILE_PWD_}/src $${_PRO_FILE_PWD_}/agbplay/src
 QMAKE_CXXFLAGS += -D_XOPEN_SOURCE=700 -Wall -Wextra -Wconversion -Wunreachable-code -Wno-float-conversion
 CONFIG += debug
 CONFIG -= release
-unix {
-  CONFIG += link_pkgconfig
+CONFIG += link_pkgconfig
+packagesExist(sndfile portaudio-2.0) {
   PKGCONFIG += sndfile portaudio-2.0
 }
 else {
@@ -40,13 +40,13 @@ SOURCES += src/ConfigManager.cpp       src/OS.cpp
 
 SOURCES += src/main.cpp
 
-# If git commands can be run without errors, grab the commit hash as a version number
+VERSION = 1.0.0
+# If git commands can be run without errors, grab the commit hash
 system(git log -1 --pretty=format:) {
-  VERSION = 1.0.0-$$system(git log -1 --pretty=format:%h)
+  BUILD_HASH = -$$system(git log -1 --pretty=format:%h)
 }
-# Otherwise just use a dummy version number
 else {
-  VERSION = 1.0.0
+  BUILD_HASH =
 }
 
-DEFINES += AGBPLAY_VERSION=$${VERSION}
+DEFINES += AGBPLAY_VERSION=$${VERSION}$${BUILD_HASH}

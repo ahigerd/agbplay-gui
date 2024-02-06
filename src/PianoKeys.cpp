@@ -28,14 +28,12 @@ int PianoKeys::preferredWidth(int maxWidth)
   return keyWidth * numWhiteKeys + 1;
 }
 
-void PianoKeys::noteOn(int noteNumber)
+void PianoKeys::setNoteOn(int noteNumber, bool on)
 {
-  activeKeys[noteNumber] = true;
-}
-
-void PianoKeys::noteOff(int noteNumber)
-{
-  activeKeys[noteNumber] = false;
+  if (activeKeys[noteNumber] != on) {
+    activeKeys[noteNumber] = on;
+    update(keyRect(noteNumber));
+  }
 }
 
 QRect PianoKeys::keyRect(int noteNum) const

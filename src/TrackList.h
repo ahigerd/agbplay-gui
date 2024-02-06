@@ -16,7 +16,16 @@ public:
 
   QSize sizeHint() const;
 
-  void selectSong(PlayerContext* ctx);
+signals:
+  void muteToggled(int track, bool on);
+
+public slots:
+  void selectSong(PlayerContext* ctx, quint32 addr, const QString& title);
+  void update(PlayerContext* ctx);
+
+private slots:
+  void onMuteToggled(int track, bool on);
+  void soloToggled(int track, bool on);
 
 protected:
   void showEvent(QShowEvent*);

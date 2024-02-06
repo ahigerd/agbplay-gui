@@ -5,6 +5,7 @@
 #include "Rom.h"
 #include "ConfigManager.h"
 #include "SongModel.h"
+#include "Player.h"
 #include <QApplication>
 #include <QBoxLayout>
 #include <QTreeView>
@@ -21,10 +22,11 @@
 #include <QSettings>
 
 PlayerWindow::PlayerWindow(QWidget* parent)
-: QMainWindow(parent), ctx(nullptr)
+: QMainWindow(parent)
 {
   setWindowTitle("agbplay");
-  songs = new SongModel(this);
+  player = new Player(this);
+  songs = player->songModel();
 
   QWidget* base = new QWidget(this);
   setCentralWidget(base);
@@ -41,9 +43,11 @@ PlayerWindow::PlayerWindow(QWidget* parent)
   makeMenu();
 
   QObject::connect(this, SIGNAL(romUpdated(Rom*)), romView, SLOT(updateRom(Rom*)));
-  QObject::connect(songs, SIGNAL(songTableUpdated(SongTable*)), this, SIGNAL(songTableUpdated(SongTable*)));
-  QObject::connect(this, SIGNAL(songTableUpdated(SongTable*)), romView, SLOT(updateSongTable(SongTable*)));
+  QObject::connect(player, SIGNAL(songTableUpdated(SongTable*)), romView, SLOT(updateSongTable(SongTable*)));
   QObject::connect(songList, SIGNAL(activated(QModelIndex)), this, SLOT(selectSong(QModelIndex)));
+  QObject::connect(player, SIGNAL(songChanged(PlayerContext*,quint32,QString)), trackList, SLOT(selectSong(PlayerContext*,quint32,QString)));
+  QObject::connect(player, SIGNAL(updated(PlayerContext*)), trackList, SLOT(update(PlayerContext*)));
+  QObject::connect(trackList, SIGNAL(muteToggled(int,bool)), player, SLOT(setMute(int,bool)));
 }
 
 QLayout* PlayerWindow::makeTop()
@@ -150,19 +154,9 @@ void PlayerWindow::openRom(const QString& path)
 {
   Rom* rom;
   try {
-    Rom::CreateInstance(qPrintable(path));
-    rom = &Rom::Instance();
-    ConfigManager::Instance().SetGameCode(rom->GetROMCode());
-    const auto& cfg = ConfigManager::Instance().GetCfg();
-
-    ctx = std::make_unique<PlayerContext>(
-      ConfigManager::Instance().GetMaxLoopsPlaylist(),
-      cfg.GetTrackLimit(),
-      EnginePars(cfg.GetPCMVol(), cfg.GetEngineRev(), cfg.GetEngineFreq())
-    );
-    songs->openRom(rom);
+    rom = player->openRom(path);
   } catch (std::exception& e) {
-    ctx.reset();
+    player->openRom(QString());
     QMessageBox::warning(nullptr, "agbplay-gui", e.what());
     setWindowFilePath(QString());
     setWindowTitle("agbplay");
@@ -172,7 +166,8 @@ void PlayerWindow::openRom(const QString& path)
   setWindowFilePath(path);
   setWindowTitle(QStringLiteral("agbplay - %1").arg(QFileInfo(path).fileName()));
   emit romUpdated(rom);
-  selectSong(songs->index(0, 0));
+
+  songList->setCurrentIndex(songs->index(0, 0));
 }
 
 void PlayerWindow::about()
@@ -189,9 +184,7 @@ void PlayerWindow::about()
 void PlayerWindow::selectSong(const QModelIndex& index)
 {
   try {
-    int pos = songs->songAddress(index);
-    ctx->InitSong(pos);
-    trackList->selectSong(ctx.get());
+    player->selectSong(index.row());
   } catch (std::exception& e) {
     QMessageBox::warning(nullptr, "agbplay-gui", e.what());
   }

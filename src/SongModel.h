@@ -2,8 +2,8 @@
 
 #include <QAbstractListModel>
 #include <memory>
-#include "SoundData.h"
 class Rom;
+class SongTable;
 
 class SongModel : public QAbstractListModel
 {
@@ -15,13 +15,14 @@ public:
   QVariant data(const QModelIndex& index, int role = Qt::DisplayRole) const;
   QVariant headerData(int section, Qt::Orientation orientation, int role = Qt::DisplayRole) const;
 
-  void openRom(Rom*);
-
   std::uint32_t songAddress(const QModelIndex& index) const;
+
+public slots:
+  void setSongTable(SongTable* table);
 
 signals:
   void songTableUpdated(SongTable*);
 
 private:
-  std::unique_ptr<SongTable> songTable;
+  SongTable* songTable;
 };

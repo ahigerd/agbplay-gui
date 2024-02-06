@@ -12,8 +12,7 @@ public:
   static int preferredWidth(int maxWidth);
 
 public slots:
-  void noteOn(int noteNumber);
-  void noteOff(int noteNumber);
+  void setNoteOn(int noteNumber, bool on);
 
 protected:
   void resizeEvent(QResizeEvent*);

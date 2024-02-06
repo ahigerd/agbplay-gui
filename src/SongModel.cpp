@@ -1,20 +1,18 @@
 #include "SongModel.h"
+#include "SoundData.h"
+#include "UiUtils.h"
 
 SongModel::SongModel(QObject* parent)
-: QAbstractListModel(parent)
+: QAbstractListModel(parent), songTable(nullptr)
 {
   // initializers only
 }
 
-void SongModel::openRom(Rom*)
+void SongModel::setSongTable(SongTable* table)
 {
-  try {
-    songTable.reset(new SongTable());
-    emit songTableUpdated(songTable.get());
-  } catch (...) {
-    songTable.reset();
-    throw;
-  }
+  beginResetModel();
+  songTable = table;
+  endResetModel();
 }
 
 int SongModel::rowCount(const QModelIndex& parent) const
@@ -28,7 +26,7 @@ int SongModel::rowCount(const QModelIndex& parent) const
 QVariant SongModel::data(const QModelIndex& index, int role) const
 {
   if (role == Qt::DisplayRole) {
-    return QString::number(index.row()).rightJustified(4, '0');
+    return fixedNumber(index.row(), 4);
   }
   return QVariant();
 }

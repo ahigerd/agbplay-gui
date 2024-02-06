@@ -16,21 +16,23 @@ void VUMeter::setStereoLayout(Qt::Orientation a)
 
 void VUMeter::setLeft(double v)
 {
-  leftLevel = v;
+  leftLevel = v > 1.0 ? 1.0 : v;
   update();
 }
 
 void VUMeter::setRight(double v)
 {
-  rightLevel = v;
+  rightLevel = v > 1.0 ? 1.0 : v;
   update();
 }
 
 void VUMeter::setMute(bool m)
 {
-  muted = m;
-  resizeEvent(nullptr);
-  update();
+  if (m != muted) {
+    muted = m;
+    resizeEvent(nullptr);
+    update();
+  }
 }
 
 void VUMeter::paintEvent(QPaintEvent*)

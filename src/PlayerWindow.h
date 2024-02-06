@@ -11,6 +11,7 @@ class QTreeView;
 class QLabel;
 class QPlainTextEdit;
 class SongTable;
+class Player;
 class RomView;
 class Rom;
 
@@ -27,7 +28,6 @@ public slots:
 
 signals:
   void romUpdated(Rom*);
-  void songTableUpdated(SongTable*);
 
 private slots:
   void selectSong(const QModelIndex& index);
@@ -49,5 +49,5 @@ private:
 
   SongModel* songs;
   QStandardItemModel* playlist;
-  std::unique_ptr<PlayerContext> ctx;
+  Player* player;
 };

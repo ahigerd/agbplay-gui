@@ -2,11 +2,11 @@
 #include "TrackHeader.h"
 #include "TrackView.h"
 #include "PlayerContext.h"
+#include "UiUtils.h"
 #include <QVBoxLayout>
 #include <QScrollBar>
 #include <QLabel>
 #include <QEvent>
-#include <QtDebug>
 
 TrackList::TrackList(QWidget* parent)
 : QScrollArea(parent)
@@ -26,8 +26,8 @@ TrackList::TrackList(QWidget* parent)
   trackLayout->addWidget(v, 0);
   trackLayout->addStretch(1);
 
-  header->setGeometry(0, 0, width(), header->sizeHint().height());
-  setViewportMargins(0, header->sizeHint().height(), 0, 0);
+  header->setGeometry(1, 1, width() - 2, header->sizeHint().height());
+  setViewportMargins(0, header->sizeHint().height() + 1, 0, 0);
 
   setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOn);
   setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
@@ -53,18 +53,54 @@ void TrackList::showEvent(QShowEvent* e)
 void TrackList::resizeEvent(QResizeEvent* e)
 {
   QScrollArea::resizeEvent(e);
-  header->resize(width(), viewportMargins().top());
+  header->resize(width() - 2, viewportMargins().top() - 1);
 }
 
-void TrackList::selectSong(PlayerContext* ctx)
+void TrackList::selectSong(PlayerContext* ctx, quint32 addr, const QString& title)
 {
   qDeleteAll(tracks);
   tracks.clear();
 
-  int numTracks = int(ctx->seq.tracks.size());
+  if (ctx) {
+    header->setTrackName(QStringLiteral("[%1] %2").arg(formatAddress(addr)).arg(title));
+
+    int numTracks = int(ctx->seq.tracks.size());
+    for (int i = 0; i < numTracks; i++) {
+      TrackView* t = new TrackView(header, i, this);
+      tracks << t;
+      trackLayout->insertWidget(i, t);
+      QObject::connect(t, SIGNAL(muteToggled(int,bool)), this, SLOT(onMuteToggled(int,bool)));
+      QObject::connect(t, SIGNAL(soloToggled(int,bool)), this, SLOT(soloToggled(int,bool)));
+    }
+
+    update(ctx);
+  } else {
+    header->setTrackName(QString());
+  }
+}
+
+void TrackList::update(PlayerContext* ctx)
+{
+  for (TrackView* track : tracks) {
+    track->update(ctx);
+  }
+}
+
+void TrackList::onMuteToggled(int track, bool on)
+{
+  emit muteToggled(track, on);
+  if (!on) {
+    int numTracks = tracks.length();
+    for (int i = 0; i < numTracks; i++) {
+      tracks[i]->clearSolo();
+    }
+  }
+}
+
+void TrackList::soloToggled(int track, bool on)
+{
+  int numTracks = tracks.length();
   for (int i = 0; i < numTracks; i++) {
-    TrackView* t = new TrackView(header, i, this);
-    tracks << t;
-    trackLayout->insertWidget(i, t);
+    emit muteToggled(i, on ? (i != track) : false);
   }
 }

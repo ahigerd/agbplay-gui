@@ -19,18 +19,12 @@ else {
 
 RESOURCES += agbplay.qrc
 
-HEADERS += src/PianoKeys.h   src/VUMeter.h   src/TrackHeader.h
-SOURCES += src/PianoKeys.cpp src/VUMeter.cpp src/TrackHeader.cpp
-
-HEADERS += src/TrackView.h   src/TrackList.h   src/PlayerWindow.h
-SOURCES += src/TrackView.cpp src/TrackList.cpp src/PlayerWindow.cpp
-
-HEADERS += src/RomView.h     src/SongModel.h
-SOURCES += src/RomView.cpp   src/SongModel.cpp
-
-# files with the implementations replaced with Qt equivalents
-HEADERS += agbplay/src/ConfigManager.h agbplay/src/OS.h
-SOURCES += src/ConfigManager.cpp       src/OS.cpp
+GUI_CLASS += PianoKeys VUMeter TrackHeader TrackView TrackList
+GUI_CLASS += RomView PlayerWindow SongModel Player UiUtils
+for(F, GUI_CLASS) {
+  HEADERS += src/$${F}.h
+  SOURCES += src/$${F}.cpp
+}
 
 AGBPLAY += CGBChannel CGBPatterns Debug GameConfig PlayerContext
 AGBPLAY += SequenceReader SoundMixer ReverbEffect LoudnessCalculator
@@ -39,6 +33,10 @@ for(F, AGBPLAY) {
   HEADERS += agbplay/src/$${F}.h
   SOURCES += agbplay/src/$${F}.cpp
 }
+
+# files with the implementations replaced with Qt equivalents
+HEADERS += agbplay/src/ConfigManager.h agbplay/src/OS.h
+SOURCES += src/ConfigManager.cpp       src/OS.cpp
 
 SOURCES += src/main.cpp
 

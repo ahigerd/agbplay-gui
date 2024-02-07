@@ -14,6 +14,7 @@ class VUMeter;
 class VUState;
 class SongTable;
 class Player;
+class PlayerControls;
 class RomView;
 class Rom;
 
@@ -57,4 +58,5 @@ private:
   SongModel* songs;
   QStandardItemModel* playlist;
   Player* player;
+  PlayerControls* controls;
 };

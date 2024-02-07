@@ -4,6 +4,7 @@
 #include "SongModel.h"
 #include "UiUtils.h"
 #include "Debug.h"
+#include <QPointer>
 #include <QtDebug>
 
 class PlayerThread : public QThread
@@ -32,13 +33,19 @@ public:
     if (err != paNoError) {
       throw Xcept("Pa_StartStream(): unable to start stream: %s", Pa_GetErrorText(err));
     }
-    playerState = State::PLAYING;
+    player->setState(State::PLAYING);
+
+    setTerminationEnabled(true);
+  }
+
+  ~PlayerThread()
+  {
   }
 
   void restart()
   {
     ctx->InitSong(ctx->seq.GetSongHeaderPos());
-    playerState = State::PLAYING;
+    player->setState(State::PLAYING);
   }
 
   void play()
@@ -64,7 +71,7 @@ public:
     vuState.masterLoudness.CalcLoudness(masterAudio.data(), samplesPerBuffer);
     vuState.update();
     if (ctx->HasEnded()) {
-      playerState = State::SHUTDOWN;
+      player->setState(State::SHUTDOWN);
     }
   }
 
@@ -103,7 +110,6 @@ public:
     player->vuState.reset();
     // flush buffer
     player->rBuf.Clear();
-    player->playerState = State::TERMINATED;
   }
 };
 
@@ -271,14 +277,14 @@ void Player::play()
   try {
     if (!playerThread) {
       playerThread.reset(new PlayerThread(this));
-      QObject::connect(playerThread.get(), SIGNAL(finished()), this, SLOT(playbackDone()));
+      QObject::connect(playerThread.get(), SIGNAL(finished()), this, SLOT(playbackDone()), Qt::QueuedConnection);
       playerThread->start();
     } else {
       State state = playerState;
       if (state == State::PLAYING) {
-        playerState = State::RESTART;
+        setState(State::RESTART);
       } else if (state == State::PAUSED) {
-        playerState = State::PLAYING;
+        setState(State::PLAYING);
       }
     }
   } catch (std::exception& e) {
@@ -297,9 +303,10 @@ void Player::pause()
   }
   State state = playerState;
   if (state == State::PLAYING) {
-    playerState = State::PAUSED;
+    setState(State::PAUSED);
   } else if (state == State::PAUSED) {
-    playerState = State::PLAYING;
+    setState(State::PLAYING);
+    timer.start();
   }
 }
 
@@ -309,26 +316,35 @@ void Player::stop()
   if (!ctx) {
     return;
   }
-  if (playerThread) {
-    while (playerState == State::RESTART) {
-      QThread::msleep(5);
-    }
-    if (playerState != State::TERMINATED) {
-      playerState = State::SHUTDOWN;
-      if (playerThread) {
-        playerThread->wait(1000);
-        if (playerThread) {
-          playerThread->terminate();
-        }
-      }
-    }
+  while (playerState == State::RESTART) {
+    QThread::msleep(5);
+  }
+  if (playerState != State::TERMINATED) {
+    setState(State::SHUTDOWN);
   }
 }
 
 void Player::playbackDone()
 {
   playerThread.reset();
-  playerState = State::TERMINATED;
+  setState(State::TERMINATED);
+  vuState.reset();
+  update();
+}
+
+void Player::togglePlay()
+{
+  if (playerState == State::TERMINATED) {
+    play();
+  } else {
+    pause();
+  }
+}
+
+void Player::setState(Player::State state)
+{
+  playerState = state;
+  emit stateChanged(state == State::RESTART || state == State::PLAYING || state == State::PAUSED, state == State::PAUSED);
 }
 
 void Player::update()

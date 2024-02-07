@@ -23,6 +23,7 @@ void VUState::reset()
   for (LoudnessCalculator& c : loudness) {
     c.Reset();
   }
+  update();
 }
 
 void VUState::update()

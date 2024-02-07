@@ -1,9 +1,12 @@
 #include "SongModel.h"
 #include "SoundData.h"
 #include "UiUtils.h"
+#include <QApplication>
+#include <QStyle>
+#include <QPalette>
 
 SongModel::SongModel(QObject* parent)
-: QAbstractListModel(parent), songTable(nullptr)
+: QAbstractListModel(parent), songTable(nullptr), activeSong(-1)
 {
   // initializers only
 }
@@ -11,6 +14,7 @@ SongModel::SongModel(QObject* parent)
 void SongModel::setSongTable(SongTable* table)
 {
   beginResetModel();
+  activeSong = -1;
   songTable = table;
   endResetModel();
 }
@@ -27,6 +31,14 @@ QVariant SongModel::data(const QModelIndex& index, int role) const
 {
   if (role == Qt::DisplayRole) {
     return fixedNumber(index.row(), 4);
+  } else if (role == Qt::ForegroundRole) {
+    if (activeSong == index.row()) {
+      return qApp->style()->standardPalette().buttonText();
+    }
+  } else if (role == Qt::BackgroundRole) {
+    if (activeSong == index.row()) {
+      return qApp->style()->standardPalette().button();
+    }
   }
   return QVariant();
 }
@@ -45,4 +57,28 @@ std::uint32_t SongModel::songAddress(const QModelIndex& index) const
     return 0;
   }
   return std::uint32_t(songTable->GetPosOfSong(std::uint16_t(index.row())));
+}
+
+void SongModel::songChanged(PlayerContext*, quint32 addr)
+{
+  int ct = rowCount();
+  int oldActiveSong = activeSong;
+  activeSong = -1;
+  for (int i = 0; i < ct; i++) {
+    if (songTable->GetPosOfSong(std::uint16_t(i)) == addr) {
+      activeSong = i;
+      break;
+    }
+  }
+  if (oldActiveSong == activeSong) {
+    return;
+  }
+  if (oldActiveSong >= 0) {
+    QModelIndex idx = index(oldActiveSong, 0);
+    emit dataChanged(idx, idx);
+  }
+  if (activeSong >= 0) {
+    QModelIndex idx = index(activeSong, 0);
+    emit dataChanged(idx, idx);
+  }
 }

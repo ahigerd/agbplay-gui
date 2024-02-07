@@ -4,6 +4,7 @@
 #include <memory>
 class Rom;
 class SongTable;
+class PlayerContext;
 
 class SongModel : public QAbstractListModel
 {
@@ -19,7 +20,9 @@ public:
 
 public slots:
   void setSongTable(SongTable* table);
+  void songChanged(PlayerContext*, quint32 addr);
 
 private:
   SongTable* songTable;
+  int activeSong;
 };

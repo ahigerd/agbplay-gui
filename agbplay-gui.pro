@@ -6,8 +6,8 @@ MOC_DIR = .build
 RCC_DIR = .build
 INCLUDEPATH += $${_PRO_FILE_PWD_}/src $${_PRO_FILE_PWD_}/agbplay/src $${_PRO_FILE_PWD_}
 QMAKE_CXXFLAGS += -D_XOPEN_SOURCE=700 -Wall -Wextra -Wconversion -Wunreachable-code -Wno-float-conversion
-CONFIG += release
-CONFIG -= debug debug_and_release
+CONFIG += debug
+CONFIG -= release debug_and_release
 CONFIG += link_pkgconfig
 packagesExist(portaudio-2.0) {
   PKGCONFIG += portaudio-2.0
@@ -24,6 +24,7 @@ RESOURCES += agbplay.qrc
 
 GUI_CLASS += PianoKeys VUMeter TrackHeader TrackView TrackList
 GUI_CLASS += RomView PlayerWindow SongModel Player UiUtils
+GUI_CLASS += PlayerControls
 for(F, GUI_CLASS) {
   HEADERS += src/$${F}.h
   SOURCES += src/$${F}.cpp

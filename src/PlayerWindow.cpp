@@ -6,8 +6,10 @@
 #include "ConfigManager.h"
 #include "SongModel.h"
 #include "Player.h"
+#include "PlayerControls.h"
 #include <QApplication>
 #include <QBoxLayout>
+#include <QGridLayout>
 #include <QTreeView>
 #include <QLabel>
 #include <QFont>
@@ -45,10 +47,18 @@ PlayerWindow::PlayerWindow(Player* player, QWidget* parent)
   QObject::connect(this, SIGNAL(romUpdated(Rom*)), romView, SLOT(updateRom(Rom*)));
   QObject::connect(player, SIGNAL(songTableUpdated(SongTable*)), romView, SLOT(updateSongTable(SongTable*)));
   QObject::connect(songList, SIGNAL(activated(QModelIndex)), this, SLOT(selectSong(QModelIndex)));
+  QObject::connect(songList, SIGNAL(doubleClicked(QModelIndex)), this, SLOT(selectSong(QModelIndex)));
   QObject::connect(player, SIGNAL(songChanged(PlayerContext*,quint32,QString)), trackList, SLOT(selectSong(PlayerContext*,quint32,QString)));
   QObject::connect(player, SIGNAL(updated(PlayerContext*,VUState*)), trackList, SLOT(update(PlayerContext*,VUState*)));
   QObject::connect(player, SIGNAL(updated(PlayerContext*,VUState*)), this, SLOT(updateVU(PlayerContext*,VUState*)));
   QObject::connect(trackList, SIGNAL(muteToggled(int,bool)), player, SLOT(setMute(int,bool)));
+  QObject::connect(controls, SIGNAL(togglePlay()), player, SLOT(togglePlay()));
+  QObject::connect(controls, SIGNAL(play()), player, SLOT(play()));
+  QObject::connect(controls, SIGNAL(pause()), player, SLOT(pause()));
+  QObject::connect(controls, SIGNAL(stop()), player, SLOT(stop()));
+  QObject::connect(player, SIGNAL(songChanged(PlayerContext*,quint32,QString)), songs, SLOT(songChanged(PlayerContext*,quint32)));
+  QObject::connect(player, SIGNAL(songChanged(PlayerContext*,quint32,QString)), controls, SLOT(songChanged(PlayerContext*)));
+  QObject::connect(player, SIGNAL(stateChanged(bool,bool)), controls, SLOT(updateState(bool,bool)));
 }
 
 QLayout* PlayerWindow::makeTop()
@@ -81,18 +91,19 @@ QLayout* PlayerWindow::makeLeft()
 
 QLayout* PlayerWindow::makeRight()
 {
-  QVBoxLayout* vbox = new QVBoxLayout;
-  QHBoxLayout* hbox = new QHBoxLayout;
-  hbox->addWidget(trackList = new TrackList(this), 1);
-  hbox->addWidget(romView = new RomView(this), 0);
-  vbox->addLayout(hbox, 1);
+  QGridLayout* grid = new QGridLayout;
+  grid->setRowStretch(0, 1);
+  grid->setColumnStretch(0, 1);
 
-  log = new QPlainTextEdit(this);
+  grid->addWidget(trackList = new TrackList(this), 0, 0, 2, 1);
+  grid->addWidget(romView = new RomView(this), 0, 1);
+  grid->addWidget(controls = new PlayerControls(this), 1, 1);
+  grid->addWidget(log = new QPlainTextEdit(this), 2, 0, 1, 2);
+
   log->setReadOnly(true);
   log->setMaximumHeight(100);
-  vbox->addWidget(log, 0);
 
-  return vbox;
+  return grid;
 }
 
 void PlayerWindow::makeMenu()
@@ -102,6 +113,12 @@ void PlayerWindow::makeMenu()
   fileMenu->addAction(tr("&Open ROM..."), this, SLOT(openRom()));
   fileMenu->addSeparator();
   fileMenu->addAction(tr("E&xit"), qApp, SLOT(quit()));
+
+  QMenu* controlMenu = mb->addMenu(tr("&Control"));
+  controlMenu->addAction(controls->toggleAction());
+  controlMenu->addAction(controls->playAction());
+  controlMenu->addAction(controls->pauseAction());
+  controlMenu->addAction(controls->stopAction());
 
   QMenu* helpMenu = mb->addMenu(tr("&Help"));
   helpMenu->addAction(tr("&About..."), this, SLOT(about()));

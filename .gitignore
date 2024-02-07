@@ -3,7 +3,7 @@ agbplay-gui
 *.exe
 *.o
 moc_*
-./Makefile
+/Makefile
 core
 Makefile.Debug
 Makefile.Release

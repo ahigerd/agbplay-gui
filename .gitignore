@@ -16,4 +16,8 @@ windows/lib
 windows/include
 windows/bin
 windows/.build
-
+windows/cross
+Makefile.agbplay-gui
+windows/mkspecs
+windows/doc
+windows/plugins

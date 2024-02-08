@@ -7,6 +7,7 @@
 #include "SongModel.h"
 #include "Player.h"
 #include "PlayerControls.h"
+#include "PlaylistModel.h"
 #include <QApplication>
 #include <QBoxLayout>
 #include <QGridLayout>
@@ -29,6 +30,7 @@ PlayerWindow::PlayerWindow(Player* player, QWidget* parent)
 {
   setWindowTitle("agbplay");
   songs = player->songModel();
+  playlist = new PlaylistModel(songs);
 
   QWidget* base = new QWidget(this);
   setCentralWidget(base);
@@ -48,7 +50,11 @@ PlayerWindow::PlayerWindow(Player* player, QWidget* parent)
   QObject::connect(player, SIGNAL(songTableUpdated(SongTable*)), romView, SLOT(updateSongTable(SongTable*)));
   QObject::connect(songList, SIGNAL(activated(QModelIndex)), this, SLOT(selectSong(QModelIndex)));
   QObject::connect(songList, SIGNAL(doubleClicked(QModelIndex)), this, SLOT(selectSong(QModelIndex)));
+  QObject::connect(playlistView, SIGNAL(activated(QModelIndex)), this, SLOT(selectSong(QModelIndex)));
+  QObject::connect(playlistView, SIGNAL(doubleClicked(QModelIndex)), this, SLOT(selectSong(QModelIndex)));
   QObject::connect(player, SIGNAL(songChanged(PlayerContext*,quint32,QString)), trackList, SLOT(selectSong(PlayerContext*,quint32,QString)));
+  QObject::connect(player, SIGNAL(songChanged(PlayerContext*,quint32,QString)), songs, SLOT(songChanged(PlayerContext*,quint32)));
+  QObject::connect(player, SIGNAL(songChanged(PlayerContext*,quint32,QString)), controls, SLOT(songChanged(PlayerContext*)));
   QObject::connect(player, SIGNAL(updated(PlayerContext*,VUState*)), trackList, SLOT(update(PlayerContext*,VUState*)));
   QObject::connect(player, SIGNAL(updated(PlayerContext*,VUState*)), this, SLOT(updateVU(PlayerContext*,VUState*)));
   QObject::connect(trackList, SIGNAL(muteToggled(int,bool)), player, SLOT(setMute(int,bool)));
@@ -56,8 +62,6 @@ PlayerWindow::PlayerWindow(Player* player, QWidget* parent)
   QObject::connect(controls, SIGNAL(play()), player, SLOT(play()));
   QObject::connect(controls, SIGNAL(pause()), player, SLOT(pause()));
   QObject::connect(controls, SIGNAL(stop()), player, SLOT(stop()));
-  QObject::connect(player, SIGNAL(songChanged(PlayerContext*,quint32,QString)), songs, SLOT(songChanged(PlayerContext*,quint32)));
-  QObject::connect(player, SIGNAL(songChanged(PlayerContext*,quint32,QString)), controls, SLOT(songChanged(PlayerContext*)));
   QObject::connect(player, SIGNAL(stateChanged(bool,bool)), controls, SLOT(updateState(bool,bool)));
 }
 
@@ -81,8 +85,6 @@ QLayout* PlayerWindow::makeLeft()
   songList = makeView(songs);
   layout->addWidget(songList);
 
-  playlist = new QStandardItemModel(this);
-  playlist->setHorizontalHeaderLabels({ tr("Playlist") });
   playlistView = makeView(playlist);
   layout->addWidget(playlistView);
 
@@ -151,6 +153,7 @@ QTreeView* PlayerWindow::makeView(QAbstractItemModel* model)
   view->header()->resizeSection(0, 150);
   view->setModel(model);
   view->setSelectionMode(QAbstractItemView::ExtendedSelection);
+  view->setEditTriggers(QAbstractItemView::EditKeyPressed | QAbstractItemView::SelectedClicked);
   return view;
 }
 
@@ -201,11 +204,24 @@ void PlayerWindow::about()
 
 void PlayerWindow::selectSong(const QModelIndex& index)
 {
+  QModelIndex songIndex, playlistIndex;
+  if (index.model() == songs) {
+    songIndex = index;
+    playlistIndex = playlist->mapFromSource(index);
+  } else {
+    playlistIndex = index;
+    songIndex = playlist->mapToSource(index);
+  }
   try {
-    player->selectSong(index.row());
-    player->play();
+    player->selectSong(songIndex.row());
+    QTimer::singleShot(0, player, SLOT(play()));
   } catch (std::exception& e) {
     QMessageBox::warning(nullptr, "agbplay-gui", e.what());
+    return;
+  }
+  songList->scrollTo(songIndex);
+  if (playlistIndex.isValid()) {
+    playlistView->scrollTo(playlistIndex);
   }
 }
 

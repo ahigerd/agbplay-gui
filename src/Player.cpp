@@ -110,6 +110,7 @@ public:
     player->vuState.reset();
     // flush buffer
     player->rBuf.Clear();
+    player->playerState = State::TERMINATED;
   }
 };
 
@@ -261,12 +262,13 @@ SongModel* Player::songModel() const
 void Player::selectSong(int index)
 {
   stop();
-  std::uint32_t addr = model->songAddress(model->index(index, 0));
+  QModelIndex idx = model->index(index, 0);
+  std::uint32_t addr = model->songAddress(idx);
   ctx->InitSong(addr);
 
   vuState.setTrackCount(int(ctx->seq.tracks.size()));
 
-  emit songChanged(ctx.get(), addr, fixedNumber(index, 4));
+  emit songChanged(ctx.get(), addr, idx.data(Qt::DisplayRole).toString());
 }
 
 void Player::play()
@@ -321,6 +323,9 @@ void Player::stop()
   }
   if (playerState != State::TERMINATED) {
     setState(State::SHUTDOWN);
+  }
+  while (playerState != State::TERMINATED) {
+    QThread::msleep(5);
   }
 }
 

@@ -5,8 +5,8 @@
 #include "PlayerContext.h"
 class TrackList;
 class SongModel;
+class PlaylistModel;
 class QAbstractItemModel;
-class QStandardItemModel;
 class QTreeView;
 class QLabel;
 class QPlainTextEdit;
@@ -56,7 +56,7 @@ private:
   QPlainTextEdit* log;
 
   SongModel* songs;
-  QStandardItemModel* playlist;
+  PlaylistModel* playlist;
   Player* player;
   PlayerControls* controls;
 };

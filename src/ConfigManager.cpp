@@ -192,7 +192,7 @@ void ConfigManager::Save()
     root["pad-seconds-start"] = padSecondsStart;
     root["pad-seconds-end"] = padSecondsEnd;
 
-    QDir localDir(QStandardPaths::writableLocation(QStandardPaths::AppDataLocation));
+    QDir localDir(QStandardPaths::writableLocation(CONFIG_PATH));
     localDir.mkpath(".");
     QString localPath = localDir.absoluteFilePath("agbplay.json");
     QFile jsonFile(localPath);

@@ -2,6 +2,7 @@
 #include "SoundData.h"
 #include "UiUtils.h"
 #include "ConfigManager.h"
+#include "SongEntry.h"
 #include <QApplication>
 #include <QMimeData>
 #include <QStyle>

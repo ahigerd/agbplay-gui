@@ -3,6 +3,7 @@
 #include "ConfigManager.h"
 #include <QMimeData>
 #include <algorithm>
+#include <QtDebug>
 
 PlaylistModel::PlaylistModel(SongModel* source)
 : QAbstractProxyModel(source)
@@ -15,12 +16,15 @@ PlaylistModel::PlaylistModel(SongModel* source)
 
 void PlaylistModel::reload()
 {
+  beginResetModel();
   trackOrder.clear();
+  trackIndex.clear();
   auto entries = ConfigManager::Instance().GetCfg().GetGameEntries();
   for (const auto& entry : entries) {
     trackIndex[entry.GetUID()] = trackOrder.length();
     trackOrder << entry.GetUID();
   }
+  endResetModel();
 }
 
 int PlaylistModel::rowCount(const QModelIndex& parent) const
@@ -212,4 +216,20 @@ void PlaylistModel::onDataChanged(const QModelIndex& start, const QModelIndex& e
   if (min <= max) {
     emit dataChanged(index(min, 0), index(max, columnCount() - 1));
   }
+}
+
+void PlaylistModel::save()
+{
+  std::vector<SongEntry> playlist;
+
+  for (int i = 0; i < trackOrder.length(); i++) {
+    QModelIndex idx = sourceModel()->index(trackOrder[i], 0);
+    playlist.emplace_back(
+      sourceModel()->data(idx, Qt::EditRole).toString().toStdString(),
+      trackOrder[i]
+    );
+  }
+
+  ConfigManager::Instance().GetCfg().GetGameEntries() = playlist;
+  ConfigManager::Instance().Save();
 }

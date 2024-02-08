@@ -21,6 +21,7 @@
 #include <QMenuBar>
 #include <QMenu>
 #include <QMessageBox>
+#include <QFileInfo>
 #include <QFileDialog>
 #include <QSettings>
 #include <QtDebug>
@@ -64,6 +65,7 @@ PlayerWindow::PlayerWindow(Player* player, QWidget* parent)
   QObject::connect(controls, SIGNAL(stop()), player, SLOT(stop()));
   QObject::connect(player, SIGNAL(stateChanged(bool,bool)), controls, SLOT(updateState(bool,bool)));
   QObject::connect(player, SIGNAL(stateChanged(bool,bool)), songs, SLOT(stateChanged(bool,bool)));
+  QObject::connect(recentsMenu, SIGNAL(triggered(QAction*)), this, SLOT(openRecent(QAction*)));
 }
 
 QLayout* PlayerWindow::makeTop()
@@ -118,7 +120,11 @@ void PlayerWindow::makeMenu()
 {
   QMenuBar* mb = menuBar();
   QMenu* fileMenu = mb->addMenu(tr("&File"));
-  fileMenu->addAction(tr("&Open ROM..."), this, SLOT(openRom()));
+  fileMenu->addAction(tr("&Open ROM..."), this, SLOT(openRom()), QKeySequence::Open);
+  recentsMenu = fileMenu->addMenu(tr("Open &Recent"));
+  fillRecents();
+  fileMenu->addSeparator();
+  fileMenu->addAction(tr("&Save Playlist"), playlist, SLOT(save()), QKeySequence::Save);
   fileMenu->addSeparator();
   fileMenu->addAction(tr("E&xit"), qApp, SLOT(quit()));
 
@@ -190,6 +196,7 @@ void PlayerWindow::openRom(const QString& path)
     return;
   }
 
+  addRecent(path);
   setWindowFilePath(path);
   setWindowTitle(QStringLiteral("agbplay - %1").arg(QFileInfo(path).fileName()));
   emit romUpdated(rom);
@@ -240,4 +247,53 @@ void PlayerWindow::updateVU(PlayerContext*, VUState* vu)
 {
   masterVU->setLeft(vu->master.left);
   masterVU->setRight(vu->master.right);
+}
+
+void PlayerWindow::fillRecents()
+{
+  QSettings settings;
+  QStringList recents = settings.value("recentFiles").toStringList();
+
+  recentsMenu->clear();
+  if (recents.isEmpty()) {
+    recentsMenu->setEnabled(false);
+    return;
+  }
+  recentsMenu->setEnabled(true);
+  int i = 1;
+  for (const QString& path : recents) {
+    QAction* action = recentsMenu->addAction(QStringLiteral("&%1 - %2").arg(i).arg(QFileInfo(path).fileName()));
+    action->setData(path);
+  }
+  recentsMenu->addSeparator();
+  recentsMenu->addAction(tr("&Clear Recent"), this, SLOT(clearRecents()));
+}
+
+void PlayerWindow::addRecent(const QString& path)
+{
+  QSettings settings;
+  QStringList recents = settings.value("recentFiles").toStringList();
+  recents.removeAll(path);
+  recents.insert(0, path);
+  while (recents.length() > 4) {
+    recents.removeLast();
+  }
+
+  settings.setValue("recentFiles", recents);
+  fillRecents();
+}
+
+void PlayerWindow::clearRecents()
+{
+  QSettings settings;
+  settings.remove("recentFiles");
+  fillRecents();
+}
+
+void PlayerWindow::openRecent(QAction* action)
+{
+  QString path = action->data().toString();
+  if (!path.isEmpty()) {
+    openRom(path);
+  }
 }

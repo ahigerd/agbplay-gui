@@ -38,12 +38,17 @@ protected:
 private slots:
   void selectSong(const QModelIndex& index);
   void updateVU(PlayerContext*, VUState* vu);
+  void clearRecents();
+  void openRecent(QAction* action);
 
 private:
   QLayout* makeTop();
   QLayout* makeLeft();
   QLayout* makeRight();
   void makeMenu();
+
+  void fillRecents();
+  void addRecent(const QString& path);
 
   QLabel* makeTitle();
   QTreeView* makeView(QAbstractItemModel* model);
@@ -59,4 +64,5 @@ private:
   PlaylistModel* playlist;
   Player* player;
   PlayerControls* controls;
+  QMenu* recentsMenu;
 };

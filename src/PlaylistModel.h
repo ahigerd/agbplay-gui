@@ -27,6 +27,9 @@ public:
   bool canDropMimeData(const QMimeData* data, Qt::DropAction action, int row, int column, const QModelIndex& parent) const;
   bool dropMimeData(const QMimeData* data, Qt::DropAction action, int row, int column, const QModelIndex& parent);
 
+public slots:
+  void save();
+
 private slots:
   void reload();
   void onDataChanged(const QModelIndex& start, const QModelIndex& end);

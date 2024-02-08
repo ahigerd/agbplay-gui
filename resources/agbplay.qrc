@@ -1,0 +1,10 @@
+<!DOCTYPE RCC><RCC version="1.0">
+<qresource>
+  <file alias="logo.png">logo.png</file>
+  <file alias="agbplay.json">../agbplay/agbplay.json</file>
+  <file>about.html</file>
+</qresource>
+<qresource lang="en">
+  <file>about.html</file>
+</qresource>
+</RCC>

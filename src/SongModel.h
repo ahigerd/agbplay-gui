@@ -1,6 +1,7 @@
 #pragma once
 
 #include <QAbstractListModel>
+#include <QIcon>
 #include <memory>
 class SongTable;
 class PlayerContext;
@@ -24,6 +25,7 @@ public:
 public slots:
   void setSongTable(SongTable* table);
   void songChanged(PlayerContext*, quint32 addr);
+  void stateChanged(bool isPlaying, bool isPaused);
 
 protected:
   int findByAddress(quint32 addr) const;
@@ -31,5 +33,7 @@ protected:
 private:
   SongTable* songTable;
   int activeSong;
+  bool isPlaying, isPaused;
   QStringList titles;
+  mutable QIcon blankIcon;
 };

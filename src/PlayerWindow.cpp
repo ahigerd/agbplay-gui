@@ -63,6 +63,7 @@ PlayerWindow::PlayerWindow(Player* player, QWidget* parent)
   QObject::connect(controls, SIGNAL(pause()), player, SLOT(pause()));
   QObject::connect(controls, SIGNAL(stop()), player, SLOT(stop()));
   QObject::connect(player, SIGNAL(stateChanged(bool,bool)), controls, SLOT(updateState(bool,bool)));
+  QObject::connect(player, SIGNAL(stateChanged(bool,bool)), songs, SLOT(stateChanged(bool,bool)));
 }
 
 QLayout* PlayerWindow::makeTop()
@@ -198,13 +199,13 @@ void PlayerWindow::openRom(const QString& path)
 
 void PlayerWindow::about()
 {
+  QFile about(":/about.html");
+  about.open(QIODevice::ReadOnly | QIODevice::Text);
   QMessageBox::about(
     this,
     tr("agbplay-gui (%1)").arg(qApp->applicationVersion()),
-    tr(
-      "<b>agbplay</b> is a music player for GBA ROMs that use "
-      "the MusicPlayer2000 (mp2k/m4a/\"Sappy\") sound engine."
-    ));
+    QString::fromUtf8(about.readAll())
+  );
 }
 
 void PlayerWindow::selectSong(const QModelIndex& index)

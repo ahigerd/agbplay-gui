@@ -20,7 +20,7 @@ win32 {
   QMAKE_LFLAGS += -static-libgcc -static-libstdc++ -static
 }
 
-RESOURCES += agbplay.qrc
+RESOURCES += resources/agbplay.qrc
 
 GUI_CLASS += PianoKeys VUMeter TrackHeader TrackView TrackList
 GUI_CLASS += RomView PlayerWindow SongModel Player UiUtils

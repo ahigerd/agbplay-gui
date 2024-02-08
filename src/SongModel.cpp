@@ -6,9 +6,10 @@
 #include <QMimeData>
 #include <QStyle>
 #include <QPalette>
+#include <QImage>
 
 SongModel::SongModel(QObject* parent)
-: QAbstractListModel(parent), songTable(nullptr), activeSong(-1)
+: QAbstractListModel(parent), songTable(nullptr), activeSong(-1), isPlaying(false), isPaused(false)
 {
   // initializers only
 }
@@ -55,6 +56,22 @@ QVariant SongModel::data(const QModelIndex& index, int role) const
     if (activeSong == index.row()) {
       return qApp->style()->standardPalette().button();
     }
+  } else if (role == Qt::DecorationRole) {
+    if (activeSong == index.row()) {
+      if (isPaused) {
+        return qApp->style()->standardIcon(QStyle::SP_MediaPause);
+      } else if (isPlaying) {
+        return qApp->style()->standardIcon(QStyle::SP_MediaPlay);
+      } else {
+        return qApp->style()->standardIcon(QStyle::SP_MediaStop);
+      }
+    } else if (blankIcon.isNull()) {
+      QPixmap px = qApp->style()->standardPixmap(QStyle::SP_MediaPlay);
+      QImage blank(px.width(), px.height(), QImage::Format_ARGB32);
+      blank.fill(0);
+      blankIcon.addPixmap(QPixmap::fromImage(blank));
+    }
+    return blankIcon;
   }
   return QVariant();
 }
@@ -138,4 +155,11 @@ QMimeData* SongModel::mimeData(const QModelIndexList& idxs) const
   }
   data->setData("agbplay/tracklist", content.join(",").toUtf8());
   return data;
+}
+
+void SongModel::stateChanged(bool isPlaying, bool isPaused)
+{
+  this->isPlaying = isPlaying;
+  this->isPaused = isPaused;
+  emit dataChanged(index(activeSong, 0), index(activeSong, 0));
 }

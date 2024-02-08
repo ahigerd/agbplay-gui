@@ -1,7 +1,8 @@
 #include "PlaylistModel.h"
 #include "SongModel.h"
 #include "ConfigManager.h"
-#include <QtDebug>
+#include <QMimeData>
+#include <algorithm>
 
 PlaylistModel::PlaylistModel(SongModel* source)
 : QAbstractProxyModel(source)
@@ -75,6 +76,115 @@ QVariant PlaylistModel::headerData(int section, Qt::Orientation orientation, int
     return tr("Playlist");
   }
   return sourceModel()->headerData(section, orientation, role);
+}
+
+Qt::DropActions PlaylistModel::supportedDragActions() const
+{
+  return Qt::MoveAction;
+}
+
+Qt::DropActions PlaylistModel::supportedDropActions() const
+{
+  return Qt::MoveAction | Qt::LinkAction;
+}
+
+QStringList PlaylistModel::mimeTypes() const
+{
+  return QStringList() << "agbplay/tracklist";
+}
+
+QMimeData* PlaylistModel::mimeData(const QModelIndexList& idxs) const
+{
+  if (idxs.isEmpty()) {
+    return nullptr;
+  }
+  QMimeData* data = new QMimeData();
+  QStringList content;
+  for (const QModelIndex& idx : idxs) {
+    content << QStringLiteral("@%1").arg(idx.row());
+  }
+  data->setData("agbplay/tracklist", content.join(",").toUtf8());
+  return data;
+}
+
+bool PlaylistModel::canDropMimeData(const QMimeData* data, Qt::DropAction, int, int, const QModelIndex&) const
+{
+  return data->formats().contains("agbplay/tracklist");
+}
+
+bool PlaylistModel::dropMimeData(const QMimeData* data, Qt::DropAction action, int beforeRow, int, const QModelIndex&)
+{
+  QStringList tracks = QString::fromUtf8(data->data("agbplay/tracklist")).split(",");
+  int ct = tracks.length();
+  int minPos = beforeRow, maxPos = beforeRow + ct;
+  if (action == Qt::MoveAction) {
+    QList<int> toRemove;
+    // First, collect the items that will be removed and the bounds that will be affected
+    for (const QString& item : tracks) {
+      int pos = item.section('@', 1, 1).toInt();
+      toRemove << pos;
+      if (pos <= beforeRow) {
+        --beforeRow;
+      }
+      if (pos < minPos) {
+        minPos = pos;
+      }
+      if (pos > maxPos) {
+        maxPos = pos;
+      }
+    }
+
+    // Create a list of indexes to operate on; the data will be updated later
+    emit layoutAboutToBeChanged(QList<QPersistentModelIndex>(), QAbstractItemModel::VerticalSortHint);
+    QModelIndexList layoutBefore, layoutAfter;
+    for (int i = minPos; i <= maxPos; i++) {
+      layoutBefore << index(i);
+    }
+
+    // Remove the items being moved, from last to first
+    QList<int> toRemoveSorted = toRemove;
+    std::sort(toRemoveSorted.begin(), toRemoveSorted.end(), std::greater<int>());
+    for (int pos : toRemoveSorted) {
+      layoutBefore.removeAt(pos - minPos);
+    }
+
+    // Insert the items being moved into the new locations
+    for (int i = 0; i < ct; i++) {
+      layoutBefore.insert(beforeRow + i - minPos, index(toRemove[i]));
+    }
+
+    // Update the data and any persistent model indexes
+    for (int i = minPos; i <= maxPos; i++) {
+      quintptr id = layoutBefore[i - minPos].internalId();
+      layoutAfter << createIndex(i, 0, id);
+      trackOrder[i] = int(id);
+    }
+    changePersistentIndexList(layoutBefore, layoutAfter);
+  } else {
+    // Insertion is much more simple
+    QList<int> toInsert;
+    for (const QString& item : tracks) {
+      toInsert << item.toInt();
+    }
+    beginInsertRows(QModelIndex(), beforeRow, beforeRow + ct - 1);
+    for (int i = 0; i < ct; i++) {
+      trackOrder.insert(beforeRow + i, toInsert[i]);
+    }
+  }
+
+  // Update the mapping index
+  trackIndex.clear();
+  for (int i = 0; i < trackOrder.length(); i++) {
+    trackIndex[trackOrder[i]] = i;
+  }
+
+  // Notify views of changes
+  if (action == Qt::MoveAction) {
+    emit layoutChanged(QList<QPersistentModelIndex>(), QAbstractItemModel::VerticalSortHint);
+  } else {
+    endInsertRows();
+  }
+  return true;
 }
 
 void PlaylistModel::onDataChanged(const QModelIndex& start, const QModelIndex& end)

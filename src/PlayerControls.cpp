@@ -17,6 +17,7 @@ PlayerControls::PlayerControls(QWidget* parent)
   playButton = makeButton(QStyle::SP_MediaPlay, tr("&Play"), SIGNAL(play()));
   pauseButton = makeButton(QStyle::SP_MediaPause, tr("P&ause"), SIGNAL(pause()));
   stopButton = makeButton(QStyle::SP_MediaStop, tr("&Stop"), SIGNAL(stop()));
+  stopAction()->setShortcut(Qt::Key_Escape);
 
   layout->addStretch(1);
   layout->addWidget(playButton);

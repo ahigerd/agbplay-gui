@@ -34,7 +34,6 @@ qtbase/configure:
 
 lib/libQt5Widgets.a: qtbase/configure
 	+cd qtbase && ./configure $(QT_CONFIG_OPTS)
-	+$(MAKE) -C qtbase install
 	+$(MAKE) -C qtbase
 
 portaudio-static: lib/libportaudio.a

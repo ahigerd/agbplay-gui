@@ -83,9 +83,14 @@ QLayout* PlayerWindow::makeLeft()
   QVBoxLayout* layout = new QVBoxLayout;
 
   songList = makeView(songs);
+  songList->setDragDropMode(QAbstractItemView::DragOnly);
   layout->addWidget(songList);
 
   playlistView = makeView(playlist);
+  playlistView->setDragEnabled(true);
+  playlistView->setDropIndicatorShown(true);
+  playlistView->setAcceptDrops(true);
+  playlistView->setDragDropMode(QAbstractItemView::DragDrop);
   layout->addWidget(playlistView);
 
   return layout;

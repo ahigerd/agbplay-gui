@@ -16,6 +16,8 @@ public:
   bool setData(const QModelIndex& index, const QVariant& value, int role = Qt::DisplayRole);
   QVariant headerData(int section, Qt::Orientation orientation, int role = Qt::DisplayRole) const;
   Qt::ItemFlags flags(const QModelIndex& idx) const;
+  Qt::DropActions supportedDragActions() const;
+  QMimeData* mimeData(const QModelIndexList& idxs) const;
 
   std::uint32_t songAddress(const QModelIndex& index) const;
 

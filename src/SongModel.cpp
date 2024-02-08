@@ -3,6 +3,7 @@
 #include "UiUtils.h"
 #include "ConfigManager.h"
 #include <QApplication>
+#include <QMimeData>
 #include <QStyle>
 #include <QPalette>
 
@@ -112,7 +113,29 @@ void SongModel::songChanged(PlayerContext*, quint32 addr)
   }
 }
 
-Qt::ItemFlags SongModel::flags(const QModelIndex&) const
+Qt::ItemFlags SongModel::flags(const QModelIndex& index) const
 {
-  return Qt::ItemIsEnabled | Qt::ItemIsSelectable | Qt::ItemIsEditable;
+  if (!index.isValid()) {
+    return Qt::ItemIsEnabled | Qt::ItemIsDropEnabled;
+  }
+  return Qt::ItemIsEnabled | Qt::ItemIsSelectable | Qt::ItemIsEditable | Qt::ItemIsDragEnabled;
+}
+
+Qt::DropActions SongModel::supportedDragActions() const
+{
+  return Qt::LinkAction;
+}
+
+QMimeData* SongModel::mimeData(const QModelIndexList& idxs) const
+{
+  if (idxs.isEmpty()) {
+    return nullptr;
+  }
+  QMimeData* data = new QMimeData();
+  QStringList content;
+  for (const QModelIndex& idx : idxs) {
+    content << QString::number(idx.row());
+  }
+  data->setData("agbplay/tracklist", content.join(",").toUtf8());
+  return data;
 }

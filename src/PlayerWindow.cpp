@@ -166,6 +166,8 @@ QTreeView* PlayerWindow::makeView(QAbstractItemModel* model)
   view->setModel(model);
   view->setSelectionMode(QAbstractItemView::ExtendedSelection);
   view->setEditTriggers(QAbstractItemView::EditKeyPressed | QAbstractItemView::SelectedClicked);
+  view->setContextMenuPolicy(Qt::CustomContextMenu);
+  QObject::connect(view, SIGNAL(customContextMenuRequested(QPoint)), this, SLOT(songListMenu(QPoint)));
   return view;
 }
 
@@ -295,5 +297,62 @@ void PlayerWindow::openRecent(QAction* action)
   QString path = action->data().toString();
   if (!path.isEmpty()) {
     openRom(path);
+  }
+}
+
+void PlayerWindow::songListMenu(const QPoint& pos)
+{
+  QTreeView* view = qobject_cast<QTreeView*>(sender());
+  if (!view) {
+    return;
+  }
+
+  QModelIndexList items = view->selectionModel()->selectedIndexes();
+  if (items.isEmpty()) {
+    QModelIndex item = view->indexAt(pos);
+    if (item.isValid()) {
+      items << item;
+    } else {
+      return;
+    }
+  }
+
+  QAction play(style()->standardIcon(QStyle::SP_MediaPlay, nullptr, this), PlayerControls::tr("&Play"));
+  QAction enqueue(tr("&Add to Playlist"));
+  QAction remove(tr("&Remove from Playlist"));
+  QAction rename(tr("Re&name"));
+
+  QList<QAction*> actions;
+  if (items.length() == 1) {
+    actions << &play;
+  }
+  if (view == songList) {
+    actions << &enqueue;
+  }
+  if (view == playlistView) {
+    actions << &remove;
+  }
+  if (items.length() == 1) {
+    actions << &rename;
+  }
+
+  QAction* action = QMenu::exec(actions, view->mapToGlobal(pos), actions.first(), view);
+  if (action == &play) {
+    selectSong(items[0]);
+  } else if (action == &enqueue) {
+    int end = playlist->rowCount();
+    playlist->append(items);
+    playlistView->clearSelection();
+    for (int i = items.length() - 1; i >= 0; --i) {
+      playlistView->selectionModel()->select(playlist->index(end + i), QItemSelectionModel::Select);
+    }
+    playlistView->scrollTo(playlist->index(end + items.length() - 1), QAbstractItemView::EnsureVisible);
+    playlistView->selectionModel()->setCurrentIndex(playlist->index(end), QItemSelectionModel::NoUpdate);
+  } else if (action == &remove) {
+    playlist->remove(items);
+    view->clearSelection();
+    view->selectionModel()->setCurrentIndex(view->indexAt(pos), QItemSelectionModel::NoUpdate);
+  } else if (action == &rename) {
+    view->edit(items[0]);
   }
 }

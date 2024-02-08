@@ -233,3 +233,27 @@ void PlaylistModel::save()
   ConfigManager::Instance().GetCfg().GetGameEntries() = playlist;
   ConfigManager::Instance().Save();
 }
+
+void PlaylistModel::append(const QModelIndexList& items)
+{
+  beginInsertRows(QModelIndex(), trackOrder.length(), items.length());
+  for (const QModelIndex& _idx : items) {
+    QModelIndex idx = _idx.model() == this ? mapToSource(_idx) : _idx;
+    trackIndex[idx.row()] = trackOrder.length();
+    trackOrder << idx.row();
+  }
+  endInsertRows();
+}
+
+void PlaylistModel::remove(const QModelIndexList& items)
+{
+  for (const QModelIndex& idx : items) {
+    if (idx.model() != this) {
+      continue;
+    }
+    beginRemoveRows(QModelIndex(), idx.row(), 1);
+    trackIndex.remove(int(idx.internalId()));
+    trackOrder.removeAt(idx.row());
+    endRemoveRows();
+  }
+}

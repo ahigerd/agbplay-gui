@@ -40,6 +40,7 @@ private slots:
   void updateVU(PlayerContext*, VUState* vu);
   void clearRecents();
   void openRecent(QAction* action);
+  void songListMenu(const QPoint& pos);
 
 private:
   QLayout* makeTop();

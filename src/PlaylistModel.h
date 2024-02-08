@@ -30,6 +30,9 @@ public:
   void append(const QModelIndexList& items);
   void remove(const QModelIndexList& items);
 
+signals:
+  void playlistDirty(bool dirty = true);
+
 public slots:
   void save();
 

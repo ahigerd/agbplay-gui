@@ -5,7 +5,6 @@
 #include "UiUtils.h"
 #include "Debug.h"
 #include <QPointer>
-#include <QtDebug>
 
 class PlayerThread : public QThread
 {

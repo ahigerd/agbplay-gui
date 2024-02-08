@@ -22,6 +22,9 @@ public:
 
   std::uint32_t songAddress(const QModelIndex& index) const;
 
+signals:
+  void playlistDirty(bool dirty = true);
+
 public slots:
   void setSongTable(SongTable* table);
   void songChanged(PlayerContext*, quint32 addr);

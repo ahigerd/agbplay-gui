@@ -6,8 +6,8 @@ MOC_DIR = .build
 RCC_DIR = .build
 INCLUDEPATH += $${_PRO_FILE_PWD_}/src $${_PRO_FILE_PWD_}/agbplay/src $${_PRO_FILE_PWD_}
 QMAKE_CXXFLAGS += -D_XOPEN_SOURCE=700 -Wall -Wextra -Wconversion -Wunreachable-code -Wno-float-conversion
-CONFIG += debug
-CONFIG -= release debug_and_release
+CONFIG += release
+CONFIG -= debug debug_and_release
 CONFIG += link_pkgconfig
 packagesExist(portaudio-2.0) {
   PKGCONFIG += portaudio-2.0

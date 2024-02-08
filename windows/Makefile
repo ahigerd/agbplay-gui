@@ -47,9 +47,11 @@ lib/libportaudio.a: portaudio/configure
 	+$(MAKE) -C portaudio install
 
 Makefile.agbplay-gui: lib/libportaudio.a lib/libQt5Widgets.a ../agbplay-gui.pro
+	mkdir -p .build
 	PKG_CONFIG_PATH=$(realpath ./lib/pkgconfig) ./qtbase/bin/qmake -o Makefile.agbplay-gui .. $(CROSS_QMAKE)
 
 agbplay-gui.exe: Makefile.agbplay-gui lib/libportaudio.a lib/libQt5Widgets.a FORCE
+	mkdir -p .build
 	+$(MAKE) -f Makefile.agbplay-gui
 
 buildclean:

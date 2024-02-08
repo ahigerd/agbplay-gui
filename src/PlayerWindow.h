@@ -41,6 +41,7 @@ private slots:
   void clearRecents();
   void openRecent(QAction* action);
   void songListMenu(const QPoint& pos);
+  void playlistDirty(bool dirty);
 
 private:
   QLayout* makeTop();
@@ -66,4 +67,6 @@ private:
   Player* player;
   PlayerControls* controls;
   QMenu* recentsMenu;
+
+  bool playlistIsDirty;
 };

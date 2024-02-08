@@ -83,6 +83,7 @@ bool SongModel::setData(const QModelIndex& index, const QVariant& value, int rol
     return false;
   }
   titles[index.row()] = value.toString();
+  emit playlistDirty(true);
   emit dataChanged(index, index);
   return true;
 }

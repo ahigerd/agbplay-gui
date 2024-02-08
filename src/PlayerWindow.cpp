@@ -24,7 +24,6 @@
 #include <QFileInfo>
 #include <QFileDialog>
 #include <QSettings>
-#include <QtDebug>
 
 PlayerWindow::PlayerWindow(Player* player, QWidget* parent)
 : QMainWindow(parent), player(player)
@@ -66,6 +65,7 @@ PlayerWindow::PlayerWindow(Player* player, QWidget* parent)
   QObject::connect(player, SIGNAL(stateChanged(bool,bool)), controls, SLOT(updateState(bool,bool)));
   QObject::connect(player, SIGNAL(stateChanged(bool,bool)), songs, SLOT(stateChanged(bool,bool)));
   QObject::connect(recentsMenu, SIGNAL(triggered(QAction*)), this, SLOT(openRecent(QAction*)));
+  QObject::connect(playlist, SIGNAL(playlistDirty(bool)), this, SLOT(playlistDirty(bool)));
 }
 
 QLayout* PlayerWindow::makeTop()
@@ -192,7 +192,7 @@ void PlayerWindow::openRom(const QString& path)
     rom = player->openRom(path);
   } catch (std::exception& e) {
     player->openRom(QString());
-    QMessageBox::warning(nullptr, "agbplay-gui", e.what());
+    QMessageBox::warning(nullptr, "agbplay", e.what());
     setWindowFilePath(QString());
     setWindowTitle("agbplay");
     return;
@@ -231,7 +231,7 @@ void PlayerWindow::selectSong(const QModelIndex& index)
     player->selectSong(songIndex.row());
     QTimer::singleShot(0, player, SLOT(play()));
   } catch (std::exception& e) {
-    QMessageBox::warning(nullptr, "agbplay-gui", e.what());
+    QMessageBox::warning(nullptr, "agbplay", e.what());
     return;
   }
   songList->scrollTo(songIndex);
@@ -242,6 +242,12 @@ void PlayerWindow::selectSong(const QModelIndex& index)
 
 void PlayerWindow::closeEvent(QCloseEvent*)
 {
+  if (playlistIsDirty) {
+    auto choice = QMessageBox::question(this, "agbplay", tr("Do you want to save your changes to the playlist?"));
+    if (choice == QMessageBox::Yes) {
+      playlist->save();
+    }
+  }
   player->stop();
 }
 
@@ -355,4 +361,9 @@ void PlayerWindow::songListMenu(const QPoint& pos)
   } else if (action == &rename) {
     view->edit(items[0]);
   }
+}
+
+void PlayerWindow::playlistDirty(bool dirty)
+{
+  playlistIsDirty = dirty;
 }

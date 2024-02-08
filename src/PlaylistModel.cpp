@@ -3,7 +3,6 @@
 #include "ConfigManager.h"
 #include <QMimeData>
 #include <algorithm>
-#include <QtDebug>
 
 PlaylistModel::PlaylistModel(SongModel* source)
 : QAbstractProxyModel(source)
@@ -12,6 +11,7 @@ PlaylistModel::PlaylistModel(SongModel* source)
 
   QObject::connect(source, SIGNAL(modelReset()), this, SLOT(reload()));
   QObject::connect(source, SIGNAL(dataChanged(QModelIndex,QModelIndex)), this, SLOT(onDataChanged(QModelIndex,QModelIndex)));
+  QObject::connect(source, SIGNAL(playlistDirty()), this, SIGNAL(playlistDirty()));
 }
 
 void PlaylistModel::reload()
@@ -25,6 +25,7 @@ void PlaylistModel::reload()
     trackOrder << entry.GetUID();
   }
   endResetModel();
+  emit playlistDirty(false);
 }
 
 int PlaylistModel::rowCount(const QModelIndex& parent) const
@@ -188,6 +189,7 @@ bool PlaylistModel::dropMimeData(const QMimeData* data, Qt::DropAction action, i
   } else {
     endInsertRows();
   }
+  emit playlistDirty();
   return true;
 }
 
@@ -232,6 +234,7 @@ void PlaylistModel::save()
 
   ConfigManager::Instance().GetCfg().GetGameEntries() = playlist;
   ConfigManager::Instance().Save();
+  emit playlistDirty(false);
 }
 
 void PlaylistModel::append(const QModelIndexList& items)
@@ -243,6 +246,7 @@ void PlaylistModel::append(const QModelIndexList& items)
     trackOrder << idx.row();
   }
   endInsertRows();
+  emit playlistDirty();
 }
 
 void PlaylistModel::remove(const QModelIndexList& items)
@@ -256,4 +260,5 @@ void PlaylistModel::remove(const QModelIndexList& items)
     trackOrder.removeAt(idx.row());
     endRemoveRows();
   }
+  emit playlistDirty();
 }

@@ -8,6 +8,7 @@
 #include "Player.h"
 #include "PlayerControls.h"
 #include "PlaylistModel.h"
+#include "UiUtils.h"
 #include <QApplication>
 #include <QBoxLayout>
 #include <QGridLayout>
@@ -24,6 +25,8 @@
 #include <QFileInfo>
 #include <QFileDialog>
 #include <QSettings>
+#include <QProgressBar>
+#include <QPushButton>
 
 PlayerWindow::PlayerWindow(Player* player, QWidget* parent)
 : QMainWindow(parent), player(player)
@@ -50,8 +53,10 @@ PlayerWindow::PlayerWindow(Player* player, QWidget* parent)
   QObject::connect(player, SIGNAL(songTableUpdated(SongTable*)), romView, SLOT(updateSongTable(SongTable*)));
   QObject::connect(songList, SIGNAL(activated(QModelIndex)), this, SLOT(selectSong(QModelIndex)));
   QObject::connect(songList, SIGNAL(doubleClicked(QModelIndex)), this, SLOT(selectSong(QModelIndex)));
+  QObject::connect(songList->selectionModel(), SIGNAL(selectionChanged(QItemSelection,QItemSelection)), this, SLOT(clearOtherSelection(QItemSelection)));
   QObject::connect(playlistView, SIGNAL(activated(QModelIndex)), this, SLOT(selectSong(QModelIndex)));
   QObject::connect(playlistView, SIGNAL(doubleClicked(QModelIndex)), this, SLOT(selectSong(QModelIndex)));
+  QObject::connect(playlistView->selectionModel(), SIGNAL(selectionChanged(QItemSelection,QItemSelection)), this, SLOT(clearOtherSelection(QItemSelection)));
   QObject::connect(player, SIGNAL(songChanged(PlayerContext*,quint32,QString)), trackList, SLOT(selectSong(PlayerContext*,quint32,QString)));
   QObject::connect(player, SIGNAL(songChanged(PlayerContext*,quint32,QString)), songs, SLOT(songChanged(PlayerContext*,quint32)));
   QObject::connect(player, SIGNAL(songChanged(PlayerContext*,quint32,QString)), controls, SLOT(songChanged(PlayerContext*)));
@@ -66,6 +71,11 @@ PlayerWindow::PlayerWindow(Player* player, QWidget* parent)
   QObject::connect(player, SIGNAL(stateChanged(bool,bool)), songs, SLOT(stateChanged(bool,bool)));
   QObject::connect(recentsMenu, SIGNAL(triggered(QAction*)), this, SLOT(openRecent(QAction*)));
   QObject::connect(playlist, SIGNAL(playlistDirty(bool)), this, SLOT(playlistDirty(bool)));
+  QObject::connect(player, SIGNAL(exportStarted(QString)), this, SLOT(exportStarted(QString)));
+  QObject::connect(player, SIGNAL(exportFinished(QString)), this, SLOT(exportFinished(QString)));
+  QObject::connect(player, SIGNAL(exportError(QString)), this, SLOT(exportError(QString)));
+  QObject::connect(player, SIGNAL(exportCancelled()), this, SLOT(exportCancelled()));
+  QObject::connect(player, SIGNAL(playbackError(QString)), this, SLOT(playbackError(QString)));
 }
 
 QLayout* PlayerWindow::makeTop()
@@ -110,8 +120,21 @@ QLayout* PlayerWindow::makeRight()
   grid->addWidget(controls = new PlayerControls(this), 1, 1);
   grid->addWidget(log = new QPlainTextEdit(this), 2, 0, 1, 2);
 
+  progressPanel = new QWidget(this);
+  QHBoxLayout* hbox = new QHBoxLayout(progressPanel);;
+  hbox->setContentsMargins(0, 0, 0, 0);
+  hbox->addWidget(new QLabel(tr("Exporting:"), this), 0);
+  hbox->addWidget(exportProgress = new QProgressBar(this), 1);
+  exportProgress->setFormat("%v / %m");
+  QPushButton* abort = new QPushButton(tr("Abort"), this);
+  hbox->addWidget(abort, 0);
+  grid->addWidget(progressPanel, 3, 0, 1, 2);
+  progressPanel->hide();
+
   log->setReadOnly(true);
   log->setMaximumHeight(100);
+
+  QObject::connect(abort, SIGNAL(clicked()), player, SLOT(cancelExport()));
 
   return grid;
 }
@@ -124,7 +147,11 @@ void PlayerWindow::makeMenu()
   recentsMenu = fileMenu->addMenu(tr("Open &Recent"));
   fillRecents();
   fileMenu->addSeparator();
-  fileMenu->addAction(tr("&Save Playlist"), playlist, SLOT(save()), QKeySequence::Save);
+  saveAction = fileMenu->addAction(tr("&Save Playlist"), playlist, SLOT(save()), QKeySequence::Save);
+  fileMenu->addSeparator();
+  exportAction = fileMenu->addAction(tr("&Export Selected..."), this, SLOT(promptForExport()), Qt::CTRL | Qt::Key_E);
+  exportAllAction = fileMenu->addAction(tr("&Export All..."), this, SLOT(promptForExportAll()));
+  exportPlaylistAction = fileMenu->addAction(tr("&Export Tracks in Playlist..."), this, SLOT(promptForExportPlaylist()));
   fileMenu->addSeparator();
   fileMenu->addAction(tr("E&xit"), qApp, SLOT(quit()));
 
@@ -137,6 +164,11 @@ void PlayerWindow::makeMenu()
   QMenu* helpMenu = mb->addMenu(tr("&Help"));
   helpMenu->addAction(tr("&About..."), this, SLOT(about()));
   helpMenu->addAction(tr("About &Qt..."), qApp, SLOT(aboutQt()));
+
+  saveAction->setEnabled(false);
+  exportAction->setEnabled(false);
+  exportAllAction->setEnabled(false);
+  exportPlaylistAction->setEnabled(false);
 }
 
 QLabel* PlayerWindow::makeTitle()
@@ -204,6 +236,10 @@ void PlayerWindow::openRom(const QString& path)
   emit romUpdated(rom);
 
   songList->setCurrentIndex(songs->index(0, 0));
+  saveAction->setEnabled(true);
+  exportAction->setEnabled(true);
+  exportAllAction->setEnabled(true);
+  exportPlaylistAction->setEnabled(playlist->rowCount() > 0);
 }
 
 void PlayerWindow::about()
@@ -306,6 +342,21 @@ void PlayerWindow::openRecent(QAction* action)
   }
 }
 
+void PlayerWindow::clearOtherSelection(const QItemSelection& sel)
+{
+  exportAction->setEnabled(playlistView->selectionModel()->hasSelection() || songList->selectionModel()->hasSelection());
+
+  if (sel.isEmpty()) {
+    return;
+  }
+  QItemSelectionModel* view = qobject_cast<QItemSelectionModel*>(sender());
+  if (view == songList->selectionModel()) {
+    playlistView->clearSelection();
+  } else if (view == playlistView->selectionModel()) {
+    songList->clearSelection();
+  }
+}
+
 void PlayerWindow::songListMenu(const QPoint& pos)
 {
   QTreeView* view = qobject_cast<QTreeView*>(sender());
@@ -327,6 +378,7 @@ void PlayerWindow::songListMenu(const QPoint& pos)
   QAction enqueue(tr("&Add to Playlist"));
   QAction remove(tr("&Remove from Playlist"));
   QAction rename(tr("Re&name"));
+  QAction exportTrack(tr("&Export..."));
 
   QList<QAction*> actions;
   if (items.length() == 1) {
@@ -341,6 +393,7 @@ void PlayerWindow::songListMenu(const QPoint& pos)
   if (items.length() == 1) {
     actions << &rename;
   }
+  actions << &exportTrack;
 
   QAction* action = QMenu::exec(actions, view->mapToGlobal(pos), actions.first(), view);
   if (action == &play) {
@@ -360,10 +413,128 @@ void PlayerWindow::songListMenu(const QPoint& pos)
     view->selectionModel()->setCurrentIndex(view->indexAt(pos), QItemSelectionModel::NoUpdate);
   } else if (action == &rename) {
     view->edit(items[0]);
+  } else if (action == &exportTrack) {
+    promptForExport();
   }
 }
 
 void PlayerWindow::playlistDirty(bool dirty)
 {
   playlistIsDirty = dirty;
+  exportPlaylistAction->setEnabled(playlist->rowCount() > 0);
+}
+
+void PlayerWindow::promptForExport()
+{
+  QModelIndexList items = songList->selectionModel()->selectedIndexes();
+
+  if (items.isEmpty()) {
+    for (const QModelIndex& idx : playlistView->selectionModel()->selectedIndexes()) {
+      items << playlist->mapToSource(idx);
+    }
+  }
+
+  promptForExport(items);
+}
+
+void PlayerWindow::promptForExport(const QModelIndexList& items)
+{
+  if (items.length() == 1) {
+    QModelIndex idx = items.first();
+    QString name = idx.data(Qt::EditRole).toString();
+    QString prefix = fixedNumber(idx.row(), 4);
+    if (name.isEmpty()) {
+      name = QStringLiteral("%1.wav").arg(prefix);
+    } else {
+      name = QStringLiteral("%1 - %2.wav").arg(prefix).arg(name);
+    }
+    QString path = QFileDialog::getSaveFileName(
+        this,
+        tr("Export track to file"),
+        name,
+        QStringLiteral("%1 (*.wav);;%2 (*)").arg(tr("Wave audio files")).arg(tr("All files"))
+        );
+    if (!path.isEmpty()) {
+      exportProgress->setRange(0, 0);
+      exportProgress->setValue(0);
+      progressPanel->show();
+      player->exportToWave(path, idx.row());
+    }
+  } else {
+    QString path = QFileDialog::getExistingDirectory(
+        this,
+        tr("Export tracks into directory")
+        );
+    if (!path.isEmpty()) {
+      QList<int> tracks;
+      for (const QModelIndex& idx : items) {
+        tracks << idx.row();
+      }
+      exportProgress->setRange(0, items.length());
+      exportProgress->setValue(0);
+      progressPanel->show();
+      player->exportToWave(QDir(path), tracks);
+    }
+  }
+}
+
+void PlayerWindow::promptForExportAll()
+{
+  QModelIndexList items;
+  for (int i = 0; i < songs->rowCount(); i++) {
+    items << songs->index(i, 0);
+  }
+  promptForExport(items);
+}
+
+void PlayerWindow::promptForExportPlaylist()
+{
+  QModelIndexList items;
+  for (int i = 0; i < playlist->rowCount(); i++) {
+    items << playlist->mapToSource(playlist->index(i, 0));
+  }
+  promptForExport(items);
+}
+
+void PlayerWindow::exportStarted(const QString& path)
+{
+  logMessage(tr("Exporting to %1...").arg(path));
+}
+
+void PlayerWindow::exportFinished(const QString& path)
+{
+  logMessage(tr("Finished exporting %1.").arg(path));
+  updateExportProgress();
+}
+
+void PlayerWindow::exportError(const QString& message)
+{
+  logMessage(tr("Error while exporting: %1").arg(message));
+}
+
+void PlayerWindow::exportCancelled()
+{
+  logMessage(tr("Export cancelled."));
+  progressPanel->hide();
+}
+
+void PlayerWindow::playbackError(const QString& message)
+{
+  logMessage(tr("Error while playing: %1").arg(message));
+}
+
+void PlayerWindow::logMessage(const QString& message)
+{
+  log->appendPlainText(message);
+}
+
+void PlayerWindow::updateExportProgress()
+{
+  int max = exportProgress->maximum();
+  int val = exportProgress->value() + 1;
+  if (val >= max) {
+    progressPanel->hide();
+  } else {
+    exportProgress->setValue(val);
+  }
 }

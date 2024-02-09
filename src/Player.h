@@ -3,6 +3,7 @@
 #include <QObject>
 #include <QTimer>
 #include <QThread>
+#include <QDir>
 #include <memory>
 #include <atomic>
 #include <portaudio.h>
@@ -21,6 +22,7 @@ class Player : public QObject
 {
 Q_OBJECT
 friend class PlayerThread;
+friend class ExportThread;
 public:
   Player(QObject* parent = nullptr);
   ~Player();
@@ -31,11 +33,20 @@ public:
   SongModel* songModel() const;
   void selectSong(int index);
 
+  bool exportToWave(const QString& filename, int track);
+  bool exportToWave(const QDir& path, const QList<int>& tracks);
+
 signals:
+  void threadError(const QString& message);
   void songTableUpdated(SongTable* table);
   void songChanged(PlayerContext* context, quint32 addr, const QString& name);
   void updated(PlayerContext* context, VUState* vu);
   void stateChanged(bool isPlaying, bool isPaused);
+  void exportStarted(const QString& path);
+  void exportFinished(const QString& path);
+  void exportError(const QString& message);
+  void playbackError(const QString& message);
+  void exportCancelled();
 
 public slots:
   void setMute(int trackIdx, bool on);
@@ -45,9 +56,12 @@ public slots:
   void stop();
   void togglePlay();
 
+  void cancelExport();
+
 private slots:
   void update();
   void playbackDone();
+  void exportDone();
 
 private:
   enum class State : int {
@@ -68,9 +82,11 @@ private:
   std::unique_ptr<PlayerContext> ctx;
   std::unique_ptr<SongTable> songTable;
   std::unique_ptr<QThread> playerThread;
+  std::unique_ptr<QThread> exportThread;
   SongModel* model;
 
   std::atomic<State> playerState;
+  std::atomic<bool> abortExport;
 
   PaStream* audioStream;
   uint32_t speedFactor;
@@ -78,4 +94,5 @@ private:
 
   VUState vuState;
   std::vector<bool> mutedTracks;
+  QList<QPair<QString, quint32>> exportQueue;
 };

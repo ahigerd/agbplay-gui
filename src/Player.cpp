@@ -4,7 +4,7 @@
 #include "SongModel.h"
 #include "UiUtils.h"
 #include "Debug.h"
-#include <QPointer>
+#include "RiffWriter.h"
 
 class PlayerThread : public QThread
 {
@@ -60,7 +60,7 @@ public:
       if (ctx->seq.tracks[i].muted)
         continue;
 
-      for (size_t j = 0; j < masterAudio.size(); j++) {
+      for (size_t j = 0; j < samplesPerBuffer; j++) {
         masterAudio[j].left += trackAudio[i][j].left;
         masterAudio[j].right += trackAudio[i][j].right;
       }
@@ -104,12 +104,93 @@ public:
       ctx->InitSong(ctx->seq.GetSongHeaderPos());
     } catch (std::exception& e) {
       Debug::print("FATAL ERROR on streaming thread: %s", e.what());
+      emit player->playbackError(e.what());
     }
     Pa_StopStream(player->audioStream);
     player->vuState.reset();
     // flush buffer
     player->rBuf.Clear();
     player->playerState = State::TERMINATED;
+  }
+};
+
+class ExportThread : public QThread
+{
+public:
+  Player* player;
+  PlayerContext ctx;
+  std::size_t samplesPerBuffer;
+  std::vector<std::int16_t> masterLeft, masterRight;
+  std::vector<std::vector<sample>> trackAudio;
+  QList<QPair<QString, quint32>>& exportQueue;
+
+  static GameConfig& cfg() {
+    return ConfigManager::Instance().GetCfg();
+  }
+
+  ExportThread(Player* player)
+  : QThread(player),
+    player(player),
+    ctx(
+      ConfigManager::Instance().GetMaxLoopsPlaylist(),
+      cfg().GetTrackLimit(),
+      EnginePars(
+        cfg().GetPCMVol(),
+        cfg().GetEngineRev(),
+        cfg().GetEngineFreq()
+      )
+    ),
+    samplesPerBuffer(ctx.mixer.GetSamplesPerBuffer()),
+    masterLeft(samplesPerBuffer, 0),
+    masterRight(samplesPerBuffer, 0),
+    exportQueue(player->exportQueue)
+  {
+    setObjectName("export thread");
+    setTerminationEnabled(true);
+    player->abortExport = false;
+  }
+
+  ~ExportThread()
+  {
+  }
+
+  void run()
+  {
+    while (!exportQueue.isEmpty() && !player->abortExport) {
+      auto item = exportQueue.takeFirst();
+      try {
+        RiffWriter riff(ctx.mixer.GetSampleRate(), true);
+        riff.open(item.first.toStdString());
+        emit player->exportStarted(item.first);
+        ctx.InitSong(item.second);
+        while (!ctx.HasEnded() && !player->abortExport) {
+          // clear high level mixing buffer
+          fill(masterLeft.begin(), masterLeft.end(), 0);
+          fill(masterRight.begin(), masterRight.end(), 0);
+          // render audio buffers for tracks
+          ctx.Process(trackAudio);
+          for (size_t i = 0; i < trackAudio.size(); i++) {
+            for (size_t j = 0; j < samplesPerBuffer; j++) {
+              masterLeft[j] += trackAudio[i][j].left * 32767;
+              masterRight[j] += trackAudio[i][j].right * 32767;
+            }
+          }
+          // write to file
+          riff.write(masterLeft, masterRight);
+        }
+        riff.close();
+        if (player->abortExport) {
+          break;
+        } else {
+          emit player->exportFinished(item.first);
+        }
+      } catch (std::exception& e) {
+        emit player->exportError(e.what());
+      }
+    }
+    if (player->abortExport) {
+      emit player->exportCancelled();
+    }
   }
 };
 
@@ -289,8 +370,8 @@ void Player::play()
       }
     }
   } catch (std::exception& e) {
-    // TODO: GUI
     Debug::print(e.what());
+    emit threadError(tr("An error occurred while preparing to play:\n\n%1").arg(e.what()));
     return;
   }
   timer.start();
@@ -374,4 +455,64 @@ int Player::audioCallback(sample* output, size_t frames)
 {
   rBuf.Take(output, frames);
   return 0;
+}
+
+bool Player::exportToWave(const QString& filename, int track)
+{
+  if (!ctx || !exportQueue.isEmpty() || exportThread) {
+    return false;
+  }
+  try {
+    QModelIndex idx = model->index(track, 0);
+    quint32 addr = model->songAddress(idx);
+    exportQueue << qMakePair(filename, addr);
+    exportThread.reset(new ExportThread(this));
+    QObject::connect(exportThread.get(), SIGNAL(finished()), this, SLOT(exportDone()), Qt::QueuedConnection);
+    exportThread->start();
+  } catch (std::exception& e) {
+    Debug::print(e.what());
+    emit threadError(tr("An error occurred while preparing to export:\n\n%1").arg(e.what()));
+    return false;
+  }
+  return true;
+}
+
+bool Player::exportToWave(const QDir& path, const QList<int>& tracks)
+{
+  if (!ctx || !exportQueue.isEmpty() || exportThread) {
+    return false;
+  }
+  try {
+    for (int track : tracks) {
+      QModelIndex idx = model->index(track, 0);
+      quint32 addr = model->songAddress(idx);
+      QString name = model->data(idx, Qt::EditRole).toString();
+      QString prefix = fixedNumber(track, 4);
+      if (name.isEmpty()) {
+        name = QStringLiteral("%1.wav").arg(prefix);
+      } else {
+        name = QStringLiteral("%1 - %2.wav").arg(prefix).arg(name);
+      }
+      exportQueue << qMakePair(path.absoluteFilePath(name), addr);
+    }
+    exportThread.reset(new ExportThread(this));
+    QObject::connect(exportThread.get(), SIGNAL(finished()), this, SLOT(exportDone()), Qt::QueuedConnection);
+    exportThread->start();
+  } catch (std::exception& e) {
+    Debug::print(e.what());
+    emit threadError(tr("An error occurred while preparing to export:\n\n%1").arg(e.what()));
+    return false;
+  }
+  return true;
+}
+
+void Player::exportDone()
+{
+  exportThread.reset();
+  exportQueue.clear();
+}
+
+void Player::cancelExport()
+{
+  abortExport = true;
 }

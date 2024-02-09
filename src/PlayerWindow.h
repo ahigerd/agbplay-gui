@@ -1,6 +1,7 @@
 #pragma once
 
 #include <QMainWindow>
+#include <QItemSelection>
 #include <memory>
 #include "PlayerContext.h"
 class TrackList;
@@ -10,6 +11,7 @@ class QAbstractItemModel;
 class QTreeView;
 class QLabel;
 class QPlainTextEdit;
+class QProgressBar;
 class VUMeter;
 class VUState;
 class SongTable;
@@ -42,18 +44,30 @@ private slots:
   void openRecent(QAction* action);
   void songListMenu(const QPoint& pos);
   void playlistDirty(bool dirty);
+  void clearOtherSelection(const QItemSelection& sel);
+
+  void promptForExport();
+  void promptForExportAll();
+  void promptForExportPlaylist();
+  void exportStarted(const QString& path);
+  void exportFinished(const QString& path);
+  void exportError(const QString& message);
+  void exportCancelled();
+  void playbackError(const QString& message);
 
 private:
   QLayout* makeTop();
   QLayout* makeLeft();
   QLayout* makeRight();
   void makeMenu();
+  QLabel* makeTitle();
+  QTreeView* makeView(QAbstractItemModel* model);
 
   void fillRecents();
   void addRecent(const QString& path);
-
-  QLabel* makeTitle();
-  QTreeView* makeView(QAbstractItemModel* model);
+  void logMessage(const QString& message);
+  void promptForExport(const QModelIndexList& items);
+  void updateExportProgress();
 
   VUMeter* masterVU;
   TrackList* trackList;
@@ -61,12 +75,18 @@ private:
   QTreeView* playlistView;
   RomView* romView;
   QPlainTextEdit* log;
+  QWidget* progressPanel;
+  QProgressBar* exportProgress;
 
   SongModel* songs;
   PlaylistModel* playlist;
   Player* player;
   PlayerControls* controls;
   QMenu* recentsMenu;
+  QAction* saveAction;
+  QAction* exportAction;
+  QAction* exportAllAction;
+  QAction* exportPlaylistAction;
 
   bool playlistIsDirty;
 };

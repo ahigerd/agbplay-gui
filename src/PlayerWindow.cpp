@@ -150,8 +150,8 @@ void PlayerWindow::makeMenu()
   saveAction = fileMenu->addAction(tr("&Save Playlist"), playlist, SLOT(save()), QKeySequence::Save);
   fileMenu->addSeparator();
   exportAction = fileMenu->addAction(tr("&Export Selected..."), this, SLOT(promptForExport()), Qt::CTRL | Qt::Key_E);
-  exportAllAction = fileMenu->addAction(tr("&Export All..."), this, SLOT(promptForExportAll()));
-  exportPlaylistAction = fileMenu->addAction(tr("&Export Tracks in Playlist..."), this, SLOT(promptForExportPlaylist()));
+  exportAllAction = fileMenu->addAction(tr("Export &All..."), this, SLOT(promptForExportAll()));
+  exportPlaylistAction = fileMenu->addAction(tr("Export Tracks in &Playlist..."), this, SLOT(promptForExportPlaylist()));
   fileMenu->addSeparator();
   fileMenu->addAction(tr("E&xit"), qApp, SLOT(quit()));
 
@@ -205,10 +205,17 @@ QTreeView* PlayerWindow::makeView(QAbstractItemModel* model)
 
 void PlayerWindow::openRom()
 {
+  QSettings settings;
+  QStringList recents = settings.value("recentFiles").toStringList();
+  QString lastPath;
+  if (!recents.isEmpty()) {
+    lastPath = QFileInfo(recents.first()).absolutePath();
+  }
+
   QString path = QFileDialog::getOpenFileName(
     this,
     tr("Open GBA ROM File"),
-    QString(),
+    lastPath,
     QStringLiteral("%1 (*.gba);;%2 (*)").arg(tr("GBA ROM files")).arg(tr("All files"))
   );
   if (path.isEmpty()) {
@@ -439,6 +446,9 @@ void PlayerWindow::promptForExport()
 
 void PlayerWindow::promptForExport(const QModelIndexList& items)
 {
+  QSettings settings;
+  QString lastExportPath = settings.value("lastExport").toString();
+
   if (items.length() == 1) {
     QModelIndex idx = items.first();
     QString name = idx.data(Qt::EditRole).toString();
@@ -449,12 +459,13 @@ void PlayerWindow::promptForExport(const QModelIndexList& items)
       name = QStringLiteral("%1 - %2.wav").arg(prefix).arg(name);
     }
     QString path = QFileDialog::getSaveFileName(
-        this,
-        tr("Export track to file"),
-        name,
-        QStringLiteral("%1 (*.wav);;%2 (*)").arg(tr("Wave audio files")).arg(tr("All files"))
-        );
+      this,
+      tr("Export track to file"),
+      QDir(lastExportPath).absoluteFilePath(name),
+      QStringLiteral("%1 (*.wav);;%2 (*)").arg(tr("Wave audio files")).arg(tr("All files"))
+    );
     if (!path.isEmpty()) {
+      settings.setValue("lastExport", QFileInfo(path).absolutePath());
       exportProgress->setRange(0, 0);
       exportProgress->setValue(0);
       progressPanel->show();
@@ -462,10 +473,12 @@ void PlayerWindow::promptForExport(const QModelIndexList& items)
     }
   } else {
     QString path = QFileDialog::getExistingDirectory(
-        this,
-        tr("Export tracks into directory")
-        );
+      this,
+      tr("Export tracks into directory"),
+      lastExportPath
+    );
     if (!path.isEmpty()) {
+      settings.setValue("lastExport", path);
       QList<int> tracks;
       for (const QModelIndex& idx : items) {
         tracks << idx.row();

@@ -4,6 +4,7 @@
 
 #include <cmath>
 #include <cassert>
+#include <stdint.h>
 
 namespace boost {
   namespace math {

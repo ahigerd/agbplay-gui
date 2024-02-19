@@ -9,10 +9,16 @@ QMAKE_CXXFLAGS += -D_XOPEN_SOURCE=700 -Wall -Wextra -Wconversion -Wunreachable-c
 CONFIG += release
 CONFIG -= debug debug_and_release
 CONFIG += link_pkgconfig
-packagesExist(portaudio-2.0) {
+!isEmpty(PA_ROOT) {
+  INCLUDESPATH += $$PA_ROOT/include
+  LIBS += -L$$PA_ROOT/lib -lportaudio
+}
+else:packagesExist(portaudio-2.0) {
   PKGCONFIG += portaudio-2.0
 }
 else {
+  !isEmpty(PA_INCLUDE): INCLUDEPATH += $$PA_INCLUDE
+  !isEmpty(PA_LIB): LIBS += -L$$PA_LIB
   LIBS += -lportaudio
 }
 win32 {

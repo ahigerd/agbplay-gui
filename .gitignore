@@ -4,10 +4,12 @@ agbplay-gui
 *.exe
 *.o
 moc_*
+.qmake.stash
 /Makefile
 core
 Makefile.Debug
 Makefile.Release
+Makefile.agbplay-gui
 *plugin_import.cpp
 *resource.rc
 cross-qmake.sh
@@ -18,7 +20,6 @@ windows/include
 windows/bin
 windows/.build
 windows/cross
-Makefile.agbplay-gui
 windows/mkspecs
 windows/doc
 windows/plugins

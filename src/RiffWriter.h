@@ -1,7 +1,7 @@
 #pragma once
 
-#include <fstream>
-#include <string>
+#include <QString>
+#include <QFile>
 #include <vector>
 #include <cstdint>
 
@@ -11,7 +11,7 @@ public:
   RiffWriter(uint32_t sampleRate, bool stereo, uint32_t sizeInBytes = 0);
   ~RiffWriter();
 
-  bool open(const std::string& filename);
+  bool open(const QString& filename);
   void write(const uint8_t* data, size_t length);
   inline void write(const int8_t* data, size_t length)
     { write(reinterpret_cast<const uint8_t*>(data), length); }
@@ -24,7 +24,7 @@ public:
   void close();
 
 private:
-  std::ofstream file;
+  QFile file;
   uint32_t sampleRate, size;
   bool stereo, rewriteSize;
 };

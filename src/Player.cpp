@@ -160,7 +160,10 @@ public:
       auto item = exportQueue.takeFirst();
       try {
         RiffWriter riff(ctx.mixer.GetSampleRate(), true);
-        riff.open(item.first.toStdString());
+        bool ok = riff.open(item.first);
+        if (!ok) {
+          throw Xcept("Unable to open file");
+        }
         emit player->exportStarted(item.first);
         ctx.InitSong(item.second);
         while (!ctx.HasEnded() && !player->abortExport) {

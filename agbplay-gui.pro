@@ -51,7 +51,7 @@ SOURCES += src/ConfigManager.cpp       src/OS.cpp
 
 SOURCES += src/main.cpp
 
-VERSION = 1.0.0
+VERSION = 1.0.1
 # If git commands can be run without errors, grab the commit hash
 system(git log -1 --pretty=format:) {
   BUILD_HASH = -$$system(git log -1 --pretty=format:%h)

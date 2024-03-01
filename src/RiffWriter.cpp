@@ -1,14 +1,14 @@
 #include "RiffWriter.h"
 
 template <typename T>
-static void writeLE(std::ostream& stream, T data)
+static void writeLE(QIODevice& file, T data)
 {
   char bytes[sizeof(T)];
   for (std::size_t i = 0; i < sizeof(T); i++) {
     bytes[i] = char(data & 0xFF);
     data = T(data >> 8);
   }
-  stream.write(bytes, sizeof(T));
+  file.write(bytes, sizeof(T));
 }
 
 RiffWriter::RiffWriter(uint32_t sampleRate, bool stereo, uint32_t size)
@@ -22,10 +22,11 @@ RiffWriter::~RiffWriter()
   close();
 }
 
-bool RiffWriter::open(const std::string& filename)
+bool RiffWriter::open(const QString& filename)
 {
-  file.open(filename, std::ios::out | std::ios::trunc | std::ios::binary);
-  if (!file.is_open() || !file) {
+  file.setFileName(filename);
+  bool ok = file.open(QIODevice::WriteOnly | QIODevice::Truncate);
+  if (!ok) {
     return false;
   }
   file.write("RIFF", 4);
@@ -74,14 +75,14 @@ void RiffWriter::write(const std::vector<int16_t>& left, const std::vector<int16
 
 void RiffWriter::close()
 {
-  if (!file.is_open() || !file) {
+  if (!file.isOpen()) {
     return;
   }
   if (rewriteSize) {
-    file.seekp(4, std::ios::beg);
-    if (!file.fail()) {
+    bool ok = file.seek(4);
+    if (ok) {
       writeLE(file, size + 36);
-      file.seekp(32, std::ios::cur);
+      file.seek(file.pos() + 32);
       writeLE(file, size);
     }
   }

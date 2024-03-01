@@ -62,11 +62,14 @@ lib/libportaudio.a: portaudio/configure
 
 Makefile.agbplay-gui: lib/libportaudio.a lib/libQt5Widgets.a ../agbplay-gui.pro
 	mkdir -p .build
-	./qtbase/bin/qmake -o Makefile.agbplay-gui .. $(CROSS_QMAKE) PA_ROOT=.
+	./qtbase/bin/qmake -o Makefile.agbplay-gui .. $(CROSS_QMAKE) PA_ROOT=$(CURDIR)
 
 agbplay-gui.exe: Makefile.agbplay-gui lib/libportaudio.a lib/libQt5Widgets.a FORCE
 	mkdir -p .build
 	+$(MAKE) -f Makefile.agbplay-gui
+
+clean:
+	+$(MAKE) -f Makefile.agbplay-gui clean
 
 buildclean:
 	-cd qtbase && git clean -dxf

@@ -10,7 +10,7 @@ CONFIG += release
 CONFIG -= debug debug_and_release
 CONFIG += link_pkgconfig
 !isEmpty(PA_ROOT) {
-  INCLUDESPATH += $$PA_ROOT/include
+  INCLUDEPATH += $$PA_ROOT/include
   LIBS += -L$$PA_ROOT/lib -lportaudio
 }
 else:packagesExist(portaudio-2.0) {

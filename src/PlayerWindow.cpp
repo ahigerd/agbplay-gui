@@ -29,7 +29,7 @@
 #include <QPushButton>
 
 PlayerWindow::PlayerWindow(Player* player, QWidget* parent)
-: QMainWindow(parent), player(player)
+: QMainWindow(parent), player(player), playlistIsDirty(false)
 {
   setWindowTitle("agbplay");
   songs = player->songModel();

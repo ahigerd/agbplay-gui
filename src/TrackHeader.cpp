@@ -23,6 +23,20 @@ TrackHeader::TrackHeader(QWidget* parent)
   mute = calcRect(muteCheck, tr("Mute"));
   lineHeight = mute.height();
 
+  QStyleOptionHeader opt;
+  opt.initFrom(this);
+  opt.state = QStyle::State_None | QStyle::State_Raised | QStyle::State_Horizontal | QStyle::State_Active | QStyle::State_Enabled;
+  opt.orientation = Qt::Horizontal;
+  opt.section = 1;
+  opt.text = "X";
+  opt.position = QStyleOptionHeader::Middle;
+  opt.rect = QRect(0, 0, 50, lineHeight);
+  QSize headerSize = style()->sizeFromContents(QStyle::CT_HeaderSection, &opt, opt.rect.size(), this);
+  if (headerSize.height() > lineHeight) {
+    lineHeight = headerSize.height();
+    mute.setHeight(lineHeight);
+  }
+
   trackNumber = calcRect(QLabel("00"), tr("Track"));
   solo = calcRect(QCheckBox(tr("S")), tr("Solo"));
   location = calcRect(QLabel("0x01234567"), tr("Location"));

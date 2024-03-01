@@ -19,7 +19,7 @@ TrackList::TrackList(QWidget* parent)
   trackLayout = new QVBoxLayout(base);
   trackLayout->setContentsMargins(0, 0, 0, 0);
   header = new TrackHeader(this);
-  header->setTrackName("Test Track");
+  header->setTrackName("");
 
   // populate a dummy entry for geometry
   TrackView* v = new TrackView(header, 0, base);

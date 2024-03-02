@@ -18,9 +18,16 @@
 class SongModel;
 class Rom;
 
+struct ExportItem {
+  QString outputPath;
+  quint32 trackAddr;
+  bool splitTracks;
+};
+
 class Player : public QObject
 {
 Q_OBJECT
+friend class AudioThread;
 friend class PlayerThread;
 friend class ExportThread;
 public:
@@ -34,7 +41,7 @@ public:
   void selectSong(int index);
 
   bool exportToWave(const QString& filename, int track);
-  bool exportToWave(const QDir& path, const QList<int>& tracks);
+  bool exportToWave(const QDir& path, const QList<int>& tracks, bool split);
 
 signals:
   void threadError(const QString& message);
@@ -94,5 +101,5 @@ private:
 
   VUState vuState;
   std::vector<bool> mutedTracks;
-  QList<QPair<QString, quint32>> exportQueue;
+  QList<ExportItem> exportQueue;
 };

@@ -150,6 +150,7 @@ void PlayerWindow::makeMenu()
   saveAction = fileMenu->addAction(tr("&Save Playlist"), playlist, SLOT(save()), QKeySequence::Save);
   fileMenu->addSeparator();
   exportAction = fileMenu->addAction(tr("&Export Selected..."), this, SLOT(promptForExport()), Qt::CTRL | Qt::Key_E);
+  exportChannelsAction = fileMenu->addAction(tr("Export &Channels for Selected..."), this, SLOT(promptForExportChannels()));
   exportAllAction = fileMenu->addAction(tr("Export &All..."), this, SLOT(promptForExportAll()));
   exportPlaylistAction = fileMenu->addAction(tr("Export Tracks in &Playlist..."), this, SLOT(promptForExportPlaylist()));
   fileMenu->addSeparator();
@@ -167,6 +168,7 @@ void PlayerWindow::makeMenu()
 
   saveAction->setEnabled(false);
   exportAction->setEnabled(false);
+  exportChannelsAction->setEnabled(false);
   exportAllAction->setEnabled(false);
   exportPlaylistAction->setEnabled(false);
 }
@@ -245,6 +247,7 @@ void PlayerWindow::openRom(const QString& path)
   songList->setCurrentIndex(songs->index(0, 0));
   saveAction->setEnabled(true);
   exportAction->setEnabled(true);
+  exportChannelsAction->setEnabled(true);
   exportAllAction->setEnabled(true);
   exportPlaylistAction->setEnabled(playlist->rowCount() > 0);
 }
@@ -352,6 +355,7 @@ void PlayerWindow::openRecent(QAction* action)
 void PlayerWindow::clearOtherSelection(const QItemSelection& sel)
 {
   exportAction->setEnabled(playlistView->selectionModel()->hasSelection() || songList->selectionModel()->hasSelection());
+  exportChannelsAction->setEnabled(exportAction->isEnabled());
 
   if (sel.isEmpty()) {
     return;
@@ -386,6 +390,7 @@ void PlayerWindow::songListMenu(const QPoint& pos)
   QAction remove(tr("&Remove from Playlist"));
   QAction rename(tr("Re&name"));
   QAction exportTrack(tr("&Export..."));
+  QAction exportChannels(tr("Export &Channels..."));
 
   QList<QAction*> actions;
   if (items.length() == 1) {
@@ -400,7 +405,7 @@ void PlayerWindow::songListMenu(const QPoint& pos)
   if (items.length() == 1) {
     actions << &rename;
   }
-  actions << &exportTrack;
+  actions << &exportTrack << &exportChannels;
 
   QAction* action = QMenu::exec(actions, view->mapToGlobal(pos), actions.first(), view);
   if (action == &play) {
@@ -422,6 +427,8 @@ void PlayerWindow::songListMenu(const QPoint& pos)
     view->edit(items[0]);
   } else if (action == &exportTrack) {
     promptForExport();
+  } else if (action == &exportChannels) {
+    promptForExportChannels();
   }
 }
 
@@ -431,7 +438,7 @@ void PlayerWindow::playlistDirty(bool dirty)
   exportPlaylistAction->setEnabled(playlist->rowCount() > 0);
 }
 
-void PlayerWindow::promptForExport()
+QModelIndexList PlayerWindow::selectedIndexes() const
 {
   QModelIndexList items = songList->selectionModel()->selectedIndexes();
 
@@ -441,15 +448,25 @@ void PlayerWindow::promptForExport()
     }
   }
 
-  promptForExport(items);
+  return items;
 }
 
-void PlayerWindow::promptForExport(const QModelIndexList& items)
+void PlayerWindow::promptForExport()
+{
+  promptForExport(selectedIndexes());
+}
+
+void PlayerWindow::promptForExportChannels()
+{
+  promptForExport(selectedIndexes(), true);
+}
+
+void PlayerWindow::promptForExport(const QModelIndexList& items, bool split)
 {
   QSettings settings;
   QString lastExportPath = settings.value("lastExport").toString();
 
-  if (items.length() == 1) {
+  if (items.length() == 1 && !split) {
     QModelIndex idx = items.first();
     QString name = idx.data(Qt::EditRole).toString();
     QString prefix = fixedNumber(idx.row(), 4);
@@ -474,7 +491,7 @@ void PlayerWindow::promptForExport(const QModelIndexList& items)
   } else {
     QString path = QFileDialog::getExistingDirectory(
       this,
-      tr("Export tracks into directory"),
+      split ? tr("Export tracks into directory") : tr("Export channels into directory"),
       lastExportPath
     );
     if (!path.isEmpty()) {
@@ -486,7 +503,7 @@ void PlayerWindow::promptForExport(const QModelIndexList& items)
       exportProgress->setRange(0, items.length());
       exportProgress->setValue(0);
       progressPanel->show();
-      player->exportToWave(QDir(path), tracks);
+      player->exportToWave(QDir(path), tracks, split);
     }
   }
 }

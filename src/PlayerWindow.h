@@ -47,6 +47,7 @@ private slots:
   void clearOtherSelection(const QItemSelection& sel);
 
   void promptForExport();
+  void promptForExportChannels();
   void promptForExportAll();
   void promptForExportPlaylist();
   void exportStarted(const QString& path);
@@ -66,8 +67,9 @@ private:
   void fillRecents();
   void addRecent(const QString& path);
   void logMessage(const QString& message);
-  void promptForExport(const QModelIndexList& items);
+  void promptForExport(const QModelIndexList& items, bool split = false);
   void updateExportProgress();
+  QModelIndexList selectedIndexes() const;
 
   VUMeter* masterVU;
   TrackList* trackList;
@@ -85,6 +87,7 @@ private:
   QMenu* recentsMenu;
   QAction* saveAction;
   QAction* exportAction;
+  QAction* exportChannelsAction;
   QAction* exportAllAction;
   QAction* exportPlaylistAction;
 

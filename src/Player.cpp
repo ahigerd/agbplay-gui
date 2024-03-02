@@ -1,201 +1,11 @@
 #include "Player.h"
+#include "AudioThread.h"
 #include "ConfigManager.h"
 #include "Rom.h"
 #include "SongModel.h"
 #include "UiUtils.h"
 #include "Debug.h"
 #include "RiffWriter.h"
-
-class PlayerThread : public QThread
-{
-public:
-  using State = Player::State;
-
-  Player* player;
-  PlayerContext* ctx;
-  std::atomic<State>& playerState;
-  std::size_t samplesPerBuffer;
-  std::vector<sample> silence, masterAudio;
-  std::vector<std::vector<sample>> trackAudio;
-  VUState& vuState;
-
-  PlayerThread(Player* player)
-  : QThread(player), player(player), ctx(player->ctx.get()), playerState(player->playerState),
-    samplesPerBuffer(ctx->mixer.GetSamplesPerBuffer()),
-    silence(samplesPerBuffer, sample{0.0f, 0.0f}),
-    masterAudio(samplesPerBuffer, sample{0.0f, 0.0f}),
-    vuState(player->vuState)
-  {
-    setObjectName("mixer thread");
-
-    PaError err = Pa_StartStream(player->audioStream);
-    if (err != paNoError) {
-      throw Xcept("Pa_StartStream(): unable to start stream: %s", Pa_GetErrorText(err));
-    }
-    player->setState(State::PLAYING);
-
-    setTerminationEnabled(true);
-  }
-
-  ~PlayerThread()
-  {
-  }
-
-  void restart()
-  {
-    ctx->InitSong(ctx->seq.GetSongHeaderPos());
-    player->setState(State::PLAYING);
-  }
-
-  void play()
-  {
-    // clear high level mixing buffer
-    fill(masterAudio.begin(), masterAudio.end(), sample{0.0f, 0.0f});
-    // render audio buffers for tracks
-    ctx->Process(trackAudio);
-    for (size_t i = 0; i < trackAudio.size(); i++) {
-      assert(trackAudio[i].size() == masterAudio.size());
-
-      vuState.loudness[i].CalcLoudness(trackAudio[i].data(), samplesPerBuffer);
-      if (ctx->seq.tracks[i].muted)
-        continue;
-
-      for (size_t j = 0; j < samplesPerBuffer; j++) {
-        masterAudio[j].left += trackAudio[i][j].left;
-        masterAudio[j].right += trackAudio[i][j].right;
-      }
-    }
-    // blocking write to audio buffer
-    player->rBuf.Put(masterAudio.data(), masterAudio.size());
-    vuState.masterLoudness.CalcLoudness(masterAudio.data(), samplesPerBuffer);
-    vuState.update();
-    if (ctx->HasEnded()) {
-      player->setState(State::SHUTDOWN);
-    }
-  }
-
-  void runStream()
-  {
-    while (true) {
-      switch (playerState) {
-        case State::SHUTDOWN:
-        case State::TERMINATED:
-          return;
-        case State::RESTART:
-          restart();
-          [[fallthrough]];
-        case State::PLAYING:
-          play();
-          break;
-        case State::PAUSED:
-          player->rBuf.Put(silence.data(), silence.size());
-          break;
-        default:
-          throw Xcept("Internal PlayerInterface error: %d", (int)playerState.load());
-      }
-    }
-  }
-
-  void run()
-  {
-    try {
-      runStream();
-      // reset song state after it has finished
-      ctx->InitSong(ctx->seq.GetSongHeaderPos());
-    } catch (std::exception& e) {
-      Debug::print("FATAL ERROR on streaming thread: %s", e.what());
-      emit player->playbackError(e.what());
-    }
-    Pa_StopStream(player->audioStream);
-    player->vuState.reset();
-    // flush buffer
-    player->rBuf.Clear();
-    player->playerState = State::TERMINATED;
-  }
-};
-
-class ExportThread : public QThread
-{
-public:
-  Player* player;
-  PlayerContext ctx;
-  std::size_t samplesPerBuffer;
-  std::vector<std::int16_t> masterLeft, masterRight;
-  std::vector<std::vector<sample>> trackAudio;
-  QList<QPair<QString, quint32>>& exportQueue;
-
-  static GameConfig& cfg() {
-    return ConfigManager::Instance().GetCfg();
-  }
-
-  ExportThread(Player* player)
-  : QThread(player),
-    player(player),
-    ctx(
-      ConfigManager::Instance().GetMaxLoopsPlaylist(),
-      cfg().GetTrackLimit(),
-      EnginePars(
-        cfg().GetPCMVol(),
-        cfg().GetEngineRev(),
-        cfg().GetEngineFreq()
-      )
-    ),
-    samplesPerBuffer(ctx.mixer.GetSamplesPerBuffer()),
-    masterLeft(samplesPerBuffer, 0),
-    masterRight(samplesPerBuffer, 0),
-    exportQueue(player->exportQueue)
-  {
-    setObjectName("export thread");
-    setTerminationEnabled(true);
-    player->abortExport = false;
-  }
-
-  ~ExportThread()
-  {
-  }
-
-  void run()
-  {
-    while (!exportQueue.isEmpty() && !player->abortExport) {
-      auto item = exportQueue.takeFirst();
-      try {
-        RiffWriter riff(ctx.mixer.GetSampleRate(), true);
-        bool ok = riff.open(item.first);
-        if (!ok) {
-          throw Xcept("Unable to open file");
-        }
-        emit player->exportStarted(item.first);
-        ctx.InitSong(item.second);
-        while (!ctx.HasEnded() && !player->abortExport) {
-          // clear high level mixing buffer
-          fill(masterLeft.begin(), masterLeft.end(), 0);
-          fill(masterRight.begin(), masterRight.end(), 0);
-          // render audio buffers for tracks
-          ctx.Process(trackAudio);
-          for (size_t i = 0; i < trackAudio.size(); i++) {
-            for (size_t j = 0; j < samplesPerBuffer; j++) {
-              masterLeft[j] += trackAudio[i][j].left * 32767;
-              masterRight[j] += trackAudio[i][j].right * 32767;
-            }
-          }
-          // write to file
-          riff.write(masterLeft, masterRight);
-        }
-        riff.close();
-        if (player->abortExport) {
-          break;
-        } else {
-          emit player->exportFinished(item.first);
-        }
-      } catch (std::exception& e) {
-        emit player->exportError(e.what());
-      }
-    }
-    if (player->abortExport) {
-      emit player->exportCancelled();
-    }
-  }
-};
 
 // first portaudio hostapi has highest priority, last hostapi has lowest
 // if none are available, the default one is selected.
@@ -468,7 +278,11 @@ bool Player::exportToWave(const QString& filename, int track)
   try {
     QModelIndex idx = model->index(track, 0);
     quint32 addr = model->songAddress(idx);
-    exportQueue << qMakePair(filename, addr);
+    ExportItem item;
+    item.outputPath = filename;
+    item.trackAddr = addr;
+    item.splitTracks = false;
+    exportQueue << item;
     exportThread.reset(new ExportThread(this));
     QObject::connect(exportThread.get(), SIGNAL(finished()), this, SLOT(exportDone()), Qt::QueuedConnection);
     exportThread->start();
@@ -480,7 +294,7 @@ bool Player::exportToWave(const QString& filename, int track)
   return true;
 }
 
-bool Player::exportToWave(const QDir& path, const QList<int>& tracks)
+bool Player::exportToWave(const QDir& path, const QList<int>& tracks, bool split)
 {
   if (!ctx || !exportQueue.isEmpty() || exportThread) {
     return false;
@@ -490,13 +304,25 @@ bool Player::exportToWave(const QDir& path, const QList<int>& tracks)
       QModelIndex idx = model->index(track, 0);
       quint32 addr = model->songAddress(idx);
       QString name = model->data(idx, Qt::EditRole).toString();
-      QString prefix = fixedNumber(track, 4);
-      if (name.isEmpty()) {
-        name = QStringLiteral("%1.wav").arg(prefix);
-      } else {
-        name = QStringLiteral("%1 - %2.wav").arg(prefix).arg(name);
+      if (!split || tracks.length() > 1) {
+        QString prefix = fixedNumber(track, 4);
+        if (name.isEmpty()) {
+          name = prefix;
+        } else {
+          name = QStringLiteral("%1 - %2").arg(prefix).arg(name);
+        }
+        if (!split) {
+          name = name + ".wav";
+        }
       }
-      exportQueue << qMakePair(path.absoluteFilePath(name), addr);
+      ExportItem item;
+      item.outputPath = path.absoluteFilePath(name);
+      if (split && !item.outputPath.endsWith(path.separator())) {
+        item.outputPath += path.separator();
+      }
+      item.trackAddr = addr;
+      item.splitTracks = split;
+      exportQueue << item;
     }
     exportThread.reset(new ExportThread(this));
     QObject::connect(exportThread.get(), SIGNAL(finished()), this, SLOT(exportDone()), Qt::QueuedConnection);

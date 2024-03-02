@@ -30,7 +30,7 @@ RESOURCES += resources/agbplay.qrc
 
 GUI_CLASS += PianoKeys VUMeter TrackHeader TrackView TrackList
 GUI_CLASS += RomView PlayerWindow SongModel Player UiUtils
-GUI_CLASS += PlayerControls PlaylistModel RiffWriter
+GUI_CLASS += AudioThread PlayerControls PlaylistModel RiffWriter
 for(F, GUI_CLASS) {
   HEADERS += src/$${F}.h
   SOURCES += src/$${F}.cpp

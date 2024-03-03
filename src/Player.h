@@ -57,6 +57,7 @@ signals:
 
 public slots:
   void setMute(int trackIdx, bool on);
+  void setSpeed(double mult);
 
   void play();
   void pause();

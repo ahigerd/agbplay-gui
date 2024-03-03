@@ -67,6 +67,7 @@ PlayerWindow::PlayerWindow(Player* player, QWidget* parent)
   QObject::connect(controls, SIGNAL(play()), player, SLOT(play()));
   QObject::connect(controls, SIGNAL(pause()), player, SLOT(pause()));
   QObject::connect(controls, SIGNAL(stop()), player, SLOT(stop()));
+  QObject::connect(controls, SIGNAL(setSpeed(double)), player, SLOT(setSpeed(double)));
   QObject::connect(player, SIGNAL(stateChanged(bool,bool)), controls, SLOT(updateState(bool,bool)));
   QObject::connect(player, SIGNAL(stateChanged(bool,bool)), songs, SLOT(stateChanged(bool,bool)));
   QObject::connect(recentsMenu, SIGNAL(triggered(QAction*)), this, SLOT(openRecent(QAction*)));
@@ -250,6 +251,7 @@ void PlayerWindow::openRom(const QString& path)
   exportChannelsAction->setEnabled(true);
   exportAllAction->setEnabled(true);
   exportPlaylistAction->setEnabled(playlist->rowCount() > 0);
+  player->setSpeed(controls->speedMultiplier());
 }
 
 void PlayerWindow::about()

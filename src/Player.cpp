@@ -259,6 +259,14 @@ void Player::setMute(int trackIdx, bool on)
   }
 }
 
+void Player::setSpeed(double mult)
+{
+  if (!ctx) {
+    return;
+  }
+  ctx->reader.SetSpeedFactor(mult);
+}
+
 int Player::audioCallback(const void*, void* output, unsigned long frames, const PaStreamCallbackTimeInfo*, PaStreamCallbackFlags, void* self)
 {
   return reinterpret_cast<Player*>(self)->audioCallback(reinterpret_cast<sample*>(output), frames);

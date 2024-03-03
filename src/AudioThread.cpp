@@ -146,7 +146,8 @@ ExportThread::ExportThread(Player* player)
     )
   )),
   masterLeft(samplesPerBuffer, 0),
-  masterRight(samplesPerBuffer, 0)
+  masterRight(samplesPerBuffer, 0),
+  silence(samplesPerBuffer, 0)
 {
   player->abortExport = false;
 }
@@ -166,7 +167,7 @@ void ExportThread::prepareBuffers()
   }
 }
 
-void ExportThread::processTrack(std::size_t index, std::vector<sample>& samples, bool mute)
+void ExportThread::processTrack(std::size_t index, std::vector<sample>& samples, bool)
 {
   if (exportTracks) {
     for (size_t j = 0; j < samplesPerBuffer; j++) {
@@ -189,8 +190,22 @@ void ExportThread::outputBuffers()
   }
 }
 
+void ExportThread::pad(RiffWriter* riff, std::uint32_t samples) const
+{
+  while (samples > samplesPerBuffer) {
+    riff->write(silence, silence);
+    samples -= samplesPerBuffer;
+  }
+  if (samples > 0) {
+    std::vector<std::int16_t> shortSilence(samples, 0);
+    riff->write(shortSilence, shortSilence);
+  }
+}
+
 void ExportThread::run()
 {
+  std::uint32_t padStart = ConfigManager::Instance().GetPadSecondsStart() * ctx->mixer.GetSampleRate();
+  std::uint32_t padEnd = ConfigManager::Instance().GetPadSecondsEnd() * ctx->mixer.GetSampleRate();
   while (!player->exportQueue.isEmpty() && !player->abortExport) {
     auto item = player->exportQueue.takeFirst();
     exportTracks = item.splitTracks;
@@ -212,6 +227,7 @@ void ExportThread::run()
             riffs.clear();
             throw Xcept("Unable to open %s", qPrintable(filename));
           }
+          pad(riff, padStart);
         }
       } else {
         riff.reset(new RiffWriter(ctx->mixer.GetSampleRate(), true));
@@ -220,6 +236,7 @@ void ExportThread::run()
           riff.reset();
           throw Xcept("Unable to open file");
         }
+        pad(riff.get(), padStart);
       }
       emit player->exportStarted(item.outputPath);
       while (!player->abortExport) {
@@ -229,9 +246,11 @@ void ExportThread::run()
       }
       if (exportTracks) {
         for (auto& riff : riffs) {
+          pad(riff.get(), padEnd);
           riff->close();
         }
       } else {
+        pad(riff.get(), padEnd);
         riff->close();
       }
       if (player->abortExport) {

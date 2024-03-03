@@ -8,6 +8,7 @@
 #include "Player.h"
 #include "PlayerControls.h"
 #include "PlaylistModel.h"
+#include "PreferencesWindow.h"
 #include "UiUtils.h"
 #include <QApplication>
 #include <QBoxLayout>
@@ -27,6 +28,7 @@
 #include <QSettings>
 #include <QProgressBar>
 #include <QPushButton>
+#include <QtDebug>
 
 PlayerWindow::PlayerWindow(Player* player, QWidget* parent)
 : QMainWindow(parent), player(player), playlistIsDirty(false)
@@ -162,6 +164,12 @@ void PlayerWindow::makeMenu()
   controlMenu->addAction(controls->playAction());
   controlMenu->addAction(controls->pauseAction());
   controlMenu->addAction(controls->stopAction());
+  controlMenu->addSeparator();
+  QAction* prefsAction = controlMenu->addAction(tr("&Preferences..."), this, SLOT(openPreferences()), QKeySequence::Preferences);
+  if (prefsAction->shortcut().isEmpty()) {
+    prefsAction->setShortcut(Qt::CTRL | Qt::Key_Comma);
+  }
+  prefsAction->setMenuRole(QAction::PreferencesRole);
 
   QMenu* helpMenu = mb->addMenu(tr("&Help"));
   helpMenu->addAction(tr("&About..."), this, SLOT(about()));
@@ -569,4 +577,11 @@ void PlayerWindow::updateExportProgress()
   } else {
     exportProgress->setValue(val);
   }
+}
+
+void PlayerWindow::openPreferences()
+{
+  PreferencesWindow* prefs = new PreferencesWindow(this);
+  prefs->setAttribute(Qt::WA_DeleteOnClose);
+  prefs->open();
 }

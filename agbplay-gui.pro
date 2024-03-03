@@ -5,7 +5,7 @@ OBJECTS_DIR = .build
 MOC_DIR = .build
 RCC_DIR = .build
 INCLUDEPATH += $${_PRO_FILE_PWD_}/src $${_PRO_FILE_PWD_}/agbplay/src $${_PRO_FILE_PWD_}
-QMAKE_CXXFLAGS += -D_XOPEN_SOURCE=700 -Wall -Wextra -Wconversion -Wunreachable-code -Wno-float-conversion
+QMAKE_CXXFLAGS += -D_XOPEN_SOURCE=700 -Wall -Wextra -Wunreachable-code -Wno-conversion
 CONFIG += release
 CONFIG -= debug debug_and_release
 CONFIG += link_pkgconfig
@@ -31,6 +31,7 @@ RESOURCES += resources/agbplay.qrc
 GUI_CLASS += PianoKeys VUMeter TrackHeader TrackView TrackList
 GUI_CLASS += RomView PlayerWindow SongModel Player UiUtils
 GUI_CLASS += AudioThread PlayerControls PlaylistModel RiffWriter
+GUI_CLASS += PreferencesWindow
 for(F, GUI_CLASS) {
   HEADERS += src/$${F}.h
   SOURCES += src/$${F}.cpp
@@ -51,7 +52,7 @@ SOURCES += src/ConfigManager.cpp       src/OS.cpp
 
 SOURCES += src/main.cpp
 
-VERSION = 1.0.1
+VERSION = 1.1.0
 # If git commands can be run without errors, grab the commit hash
 system(git log -1 --pretty=format:) {
   BUILD_HASH = -$$system(git log -1 --pretty=format:%h)

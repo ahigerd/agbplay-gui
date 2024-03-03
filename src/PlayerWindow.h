@@ -56,6 +56,8 @@ private slots:
   void exportCancelled();
   void playbackError(const QString& message);
 
+  void openPreferences();
+
 private:
   QLayout* makeTop();
   QLayout* makeLeft();

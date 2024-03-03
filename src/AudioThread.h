@@ -63,9 +63,11 @@ protected:
   virtual void outputBuffers() override;
 
 private:
+  void pad(RiffWriter* riff, std::uint32_t samples) const;
+
   std::unique_ptr<RiffWriter> riff;
   std::vector<std::unique_ptr<RiffWriter>> riffs;
-  std::vector<std::int16_t> masterLeft, masterRight;
+  std::vector<std::int16_t> masterLeft, masterRight, silence;
 
   bool exportTracks;
 };

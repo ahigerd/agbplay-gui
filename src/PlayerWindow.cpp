@@ -52,7 +52,9 @@ PlayerWindow::PlayerWindow(Player* player, QWidget* parent)
   makeMenu();
 
   QObject::connect(this, SIGNAL(romUpdated(Rom*)), romView, SLOT(updateRom(Rom*)));
+  QObject::connect(player, SIGNAL(songTablesFound(std::vector<quint32>)), romView, SLOT(songTablesFound(std::vector<quint32>)));
   QObject::connect(player, SIGNAL(songTableUpdated(SongTable*)), romView, SLOT(updateSongTable(SongTable*)));
+  QObject::connect(romView, SIGNAL(songTableSelected(quint32)), player, SLOT(setSongTable(quint32)));
   QObject::connect(songList, SIGNAL(activated(QModelIndex)), this, SLOT(selectSong(QModelIndex)));
   QObject::connect(songList, SIGNAL(doubleClicked(QModelIndex)), this, SLOT(selectSong(QModelIndex)));
   QObject::connect(songList->selectionModel(), SIGNAL(selectionChanged(QItemSelection,QItemSelection)), this, SLOT(clearOtherSelection(QItemSelection)));

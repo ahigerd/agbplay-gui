@@ -45,6 +45,7 @@ public:
 
 signals:
   void threadError(const QString& message);
+  void songTablesFound(const std::vector<quint32>& addrs);
   void songTableUpdated(SongTable* table);
   void songChanged(PlayerContext* context, quint32 addr, const QString& name);
   void updated(PlayerContext* context, VUState* vu);
@@ -56,6 +57,7 @@ signals:
   void exportCancelled();
 
 public slots:
+  void setSongTable(quint32 addr);
   void setMute(int trackIdx, bool on);
   void setSpeed(double mult);
 

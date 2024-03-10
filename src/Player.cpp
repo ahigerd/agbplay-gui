@@ -139,12 +139,23 @@ Rom* Player::openRom(const QString& path)
     EnginePars(cfg.GetPCMVol(), cfg.GetEngineRev(), cfg.GetEngineFreq())
   );
 
-  songTable.reset(new SongTable());
+  std::vector<quint32> tableAddrs;
+  for (SongTable& table : SongTable::ScanForTables()) {
+    tableAddrs.push_back(table.GetSongTablePos());
+  }
+  emit songTablesFound(tableAddrs);
+
+  setSongTable(tableAddrs[0]);
+  return rom;
+}
+
+void Player::setSongTable(quint32 addr)
+{
+  songTable.reset(new SongTable(addr));
   model->setSongTable(songTable.get());
   emit songTableUpdated(songTable.get());
 
   selectSong(0);
-  return rom;
 }
 
 SongModel* Player::songModel() const

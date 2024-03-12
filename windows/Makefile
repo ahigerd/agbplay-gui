@@ -33,7 +33,8 @@ endif
 else ifneq ($(OS),Windows_NT)
 $(error Cross-compilation requires CROSS=mingw32 or CROSS=mingw64)
 else
-	PA_CONFIG_OPTS := $(PA_CONFIG_OPTS) --prefix=$(realpath .)
+	QT_CONFIG_OPTS := $(QT_CONFIG_OPTS) -platform win32-g++
+	PA_CONFIG_OPTS := $(PA_CONFIG_OPTS) --prefix=$(realpath .) CC=$(CC) CXX=$(CXX)
 	CROSS_QMAKE :=
 endif
 

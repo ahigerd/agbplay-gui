@@ -105,4 +105,5 @@ private:
   VUState vuState;
   std::vector<bool> mutedTracks;
   QList<ExportItem> exportQueue;
+  std::vector<quint32> songTableAddrs;
 };

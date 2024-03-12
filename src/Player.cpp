@@ -6,6 +6,7 @@
 #include "UiUtils.h"
 #include "Debug.h"
 #include "RiffWriter.h"
+#include <QtDebug>
 
 // first portaudio hostapi has highest priority, last hostapi has lowest
 // if none are available, the default one is selected.
@@ -139,18 +140,26 @@ Rom* Player::openRom(const QString& path)
     EnginePars(cfg.GetPCMVol(), cfg.GetEngineRev(), cfg.GetEngineFreq())
   );
 
-  std::vector<quint32> tableAddrs;
+  songTableAddrs.clear();
   for (SongTable& table : SongTable::ScanForTables()) {
-    tableAddrs.push_back(table.GetSongTablePos());
+    songTableAddrs.push_back(table.GetSongTablePos());
   }
-  emit songTablesFound(tableAddrs);
+  emit songTablesFound(songTableAddrs);
 
-  setSongTable(tableAddrs[0]);
+  setSongTable(songTableAddrs[0]);
   return rom;
 }
 
 void Player::setSongTable(quint32 addr)
 {
+  Rom* rom = &Rom::Instance();
+  auto iter = std::find(songTableAddrs.begin(), songTableAddrs.end(), addr);
+  if (iter != songTableAddrs.begin() && iter != songTableAddrs.end()) {
+    int index = iter - songTableAddrs.begin();
+    ConfigManager::Instance().SetGameCode(QStringLiteral("%1:%2").arg(QString::fromStdString(rom->GetROMCode())).arg(index).toStdString());
+  } else {
+    ConfigManager::Instance().SetGameCode(rom->GetROMCode());
+  }
   songTable.reset(new SongTable(addr));
   model->setSongTable(songTable.get());
   emit songTableUpdated(songTable.get());
